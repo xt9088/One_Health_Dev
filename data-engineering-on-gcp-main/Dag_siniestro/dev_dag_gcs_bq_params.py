@@ -14,7 +14,7 @@ default_dag_args = {
     'start_date': datetime(2023, 1, 1),  # Setting a past start_date to satisfy Airflow requirement
 }
 
-def fetch_and_store_values(table, **kwargs):
+def fetch_and_store_values(table, **kwargs):   # Extraer parametros
     dag_run_conf = kwargs['dag_run'].conf
     ruta_completa = dag_run_conf.get('id')
     print(ruta_completa)
