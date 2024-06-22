@@ -1,4 +1,4 @@
-----Copiar de LOCAL A GCS DAGS---
+----Copiar de LOCAL A GCS DAGS--- 1
 
 gsutil cp "C:\Users\LENOVO\Desktop\data-engineering-on-gcp-main\data-engineering-on-gcp-main\Dag_siniestro\Test_dev_dag_siniestros_parquet_GCS_BQ_Script_DF.py" gs://us-east4-dev-airflow-data-9879bdea-bucket/dags/
 
