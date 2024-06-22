@@ -1,0 +1,37 @@
+spark-submit --master yarn \
+--packages com.google.cloud:google-cloud-bigquery:2.10.4 \
+--jars /opt/hudi-gcp-bundle-0.13.0.jar \
+--class org.apache.hudi.utilities.streamer.HoodieStreamer \
+/opt/hudi-utilities-bundle_2.12-0.13.0.jar \
+--target-base-path gs://my-hoodie-table/path \
+--target-table mytable \
+--table-type COPY_ON_WRITE \
+--base-file-format PARQUET \
+# ... other Hudi Streamer options
+--enable-sync \
+--sync-tool-classes org.apache.hudi.gcp.bigquery.BigQuerySyncTool \
+--hoodie-conf hoodie.streamer.source.dfs.root=gs://my-source-data/path \
+--hoodie-conf hoodie.gcp.bigquery.sync.project_id=hudi-bq \
+--hoodie-conf hoodie.gcp.bigquery.sync.dataset_name=rxusandbox \
+--hoodie-conf hoodie.gcp.bigquery.sync.dataset_location=asia-southeast1 \
+--hoodie-conf hoodie.gcp.bigquery.sync.table_name=mytable \
+--hoodie-conf hoodie.gcp.bigquery.sync.base_path=gs://rxusandbox/testcases/stocks/data/target/${NOW} \
+--hoodie-conf hoodie.gcp.bigquery.sync.partition_fields=year,month,day \
+--hoodie-conf hoodie.gcp.bigquery.sync.source_uri=gs://my-hoodie-table/path/year=* \
+--hoodie-conf hoodie.gcp.bigquery.sync.source_uri_prefix=gs://my-hoodie-table/path/ \
+--hoodie-conf hoodie.gcp.bigquery.sync.use_file_listing_from_metadata=true \
+--hoodie-conf hoodie.gcp.bigquery.sync.assume_date_partitioning=false \
+--hoodie-conf hoodie.datasource.hive_sync.mode=jdbc \
+--hoodie-conf hoodie.datasource.hive_sync.jdbcurl=jdbc:hive2://localhost:10000 \
+--hoodie-conf hoodie.datasource.hive_sync.skip_ro_suffix=true \
+--hoodie-conf hoodie.datasource.hive_sync.ignore_exceptions=false \
+--hoodie-conf hoodie.datasource.hive_sync.database=mydataset \
+--hoodie-conf hoodie.datasource.hive_sync.table=mytable \
+--hoodie-conf hoodie.datasource.write.recordkey.field=mykey \
+--hoodie-conf hoodie.datasource.write.partitionpath.field=year,month,day \
+--hoodie-conf hoodie.datasource.write.precombine.field=ts \
+--hoodie-conf hoodie.datasource.write.keygenerator.type=COMPLEX \
+--hoodie-conf hoodie.datasource.write.hive_style_partitioning=true \
+--hoodie-conf hoodie.datasource.write.drop.partition.columns=true \
+--hoodie-conf hoodie.partition.metafile.use.base.format=true \
+--hoodie-conf hoodie.metadata.enable=true \

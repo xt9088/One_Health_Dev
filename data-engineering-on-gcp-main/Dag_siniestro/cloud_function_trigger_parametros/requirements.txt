@@ -1,0 +1,9 @@
+google-auth
+google-auth-httplib2
+google-auth-oauthlib
+requests
+google-cloud-storage
+mysql-connector-python
+sqlalchemy
+pymysql
+google-cloud-secret-manager==2.10.0

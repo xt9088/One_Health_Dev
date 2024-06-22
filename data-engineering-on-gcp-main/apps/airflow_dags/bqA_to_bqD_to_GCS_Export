@@ -1,0 +1,47 @@
+from airflow import DAG
+from airflow.providers.google.cloud.operators.bigquery import BigQueryToCloudStorageOperator
+from airflow.utils.dates import days_ago
+from airflow.operators.python import PythonOperator
+from google.cloud import bigquery
+
+default_args = {
+    'owner': 'airflow',
+    'start_date': days_ago(1),
+    'retries': 1,
+}
+
+def execute_merge():
+    client = bigquery.Client()
+    query = """
+    MERGE INTO target_table USING source_table ON condition 
+    WHEN MATCHED THEN UPDATE SET ...
+    WHEN NOT MATCHED THEN INSERT ...
+    """
+    client.query(query)
+
+
+with DAG(
+    dag_id='bigquery_query_to_gcs_parquet',
+    default_args=default_args,
+    schedule_interval=None,
+    catchup=False,
+) as dag:
+    
+    merge_task = PythonOperator(
+    task_id='merge_task',
+    python_callable=execute_merge,
+    dag=dag,
+)
+    
+    export_to_gcs = BigQueryToCloudStorageOperator(
+        task_id='export_to_gcs_parquet',
+        source_project_dataset_table='your_project.your_dataset.your_table',
+        destination_cloud_storage_uris=['gs://your-bucket/your-file.parquet'],
+        export_format='PARQUET',
+        compression='NONE',  # or 'GZIP' or 'SNAPPY'
+        bigquery_conn_id='google_cloud_default',
+        google_cloud_storage_conn_id='google_cloud_default',
+        sql='SELECT * FROM your_project.your_dataset.your_table WHERE your_condition',
+    )
+    
+merge_task >> export_to_gcs

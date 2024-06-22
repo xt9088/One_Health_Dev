@@ -1,0 +1,30 @@
+----Copiar de LOCAL A GCS DAGS---
+
+gsutil cp "C:\Users\LENOVO\Desktop\data-engineering-on-gcp-main\data-engineering-on-gcp-main\Dag_siniestro\Test_dev_dag_siniestros_parquet_GCS_BQ_Script_DF.py" gs://us-east4-dev-airflow-data-9879bdea-bucket/dags/
+
+----Revisar de LOCAL A GCS DAGS---
+
+gsutil ls gs://us-east4-dev-airflow-data-9879bdea-bucket/dags/
+
+----Copiar de LOCAL A GCS DATA (PARQUET FILE)--- SUBDIRECTORIOS
+
+gsutil cp "C:\Users\LENOVO\Desktop\parquet_files\nombre_archivo.parquet" gs://us-east4-dev-airflow-data-9879bdea-bucket/data/data-ipress/ipress_clinicas/internacional/
+
+gsutil ls gs://us-east4-dev-airflow-data-9879bdea-bucket/data/data-ipress/ipress_clinicas/internacional/
+
+----Copiar de LOCAL A GCS DATA (PARQUET FILE)--- BUCKET DIRECTO --- 
+
+gsutil cp "C:\Users\LENOVO\Desktop\parquet_files\nombre_archivo.parquet" gs://gcs_data_us-east4-dev-airflow-data-siniestros-bucket/
+
+gsutil ls gs://gcs_data_us-east4-dev-airflow-data-siniestros-bucket/
+
+
+-------RUTAS----
+
+console.cloud.google.com/storage/browser/us-east4-dev-airflow-data-728aa61b-bucket/dags;tab=objects?authuser=0&project=he-dev-data&supportedpurview=project&prefix=&forceOnObjectsSortingFiltering=false
+
+https://console.cloud.google.com/storage/browser/us-east4-dev-airflow-data-728aa61b-bucket/dags;tab=objects?authuser=0&project=he-dev-data&supportedpurview=project&prefix=&forceOnObjectsSortingFiltering=false
+
+https://console.cloud.google.com/storage/browser/us-east4-dev-airflow-data-9879bdea-bucket/dags;tab=objects?authuser=0&project=he-dev-composer&supportedpurview=project&prefix=&forceOnObjectsSortingFiltering=false&rapt=AEjHL4MehYbGvuSSUWrthLbfiZj6AU_QOTBIJRRxHLsn6PIzBl-w0KUrPV6JD5RqpjYRF_ldijSxOooqBFs6Je2YrMnag4v3RN7N83s_BtCJyA_TykyZOHI
+
+https://console.cloud.google.com/sql/instances/he-dev-compass/studio?authuser=0&project=he-dev-databases&rapt=AEjHL4PXMUV2WOqelqNZNmTvOwTZTpun38q9INAO1TmQYc8oTXFqudQzf20cMnRkSV-9g4Qjz_YzHUpdxax0-7ytZi2uc2fxpzga_-7uR9EZY2po0vjXWds
