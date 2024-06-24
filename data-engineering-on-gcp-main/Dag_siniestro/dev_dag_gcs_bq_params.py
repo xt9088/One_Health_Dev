@@ -14,14 +14,14 @@ default_dag_args = {
     'start_date': datetime(2023, 1, 1),  # Setting a past start_date to satisfy Airflow requirement
 }
 
-def fetch_and_store_values(table, **kwargs):   # Extraer parametros
-    dag_run_conf = kwargs['dag_run'].conf
-    ruta_completa = dag_run_conf.get('id')
+def fetch_and_store_values(table, **kwargs):  # Extraer parametros
+    dag_run_conf = kwargs['dag_run'].conf     # Extraccion del valor de la ruta de configuraciones id (ruta completa con bucket , archivo y codigo)
+    ruta_completa = dag_run_conf.get('id')    # Extraccion del valor de la ruta de configuraciones id (ruta completa con bucket , archivo y codigo)
     print(ruta_completa)
     
-    indice_slash_final = ruta_completa.rfind('/')
-    ruta = ruta_completa[:indice_slash_final]
-    print(ruta)
+    indice_slash_final = ruta_completa.rfind('/') 
+    ruta = ruta_completa[:indice_slash_final] 
+    print(ruta)     #  he-dev-data-ipress/ipress_clinicas/internacional/mdm_siniestro_20240611212129
     
     file_name = ruta
     pre_file = file_name.split('/')[-1]
@@ -29,7 +29,7 @@ def fetch_and_store_values(table, **kwargs):   # Extraer parametros
     indice_slash_final_file = file_name.rfind('/')
     prefix_file = file_name[:indice_slash_final_file]
     file_path = prefix_file+'/'+file+'.parquet'
-    print(file_path)
+    print(file_path)    #  he-dev-data/he-dev-data-ipress/ipress_clinicas/internacional/siniestro.parquet
     
     mysql_hook = MySqlHook(mysql_conn_id='Cloud_SQL_db_compass')
 
@@ -56,6 +56,7 @@ def fetch_and_store_values(table, **kwargs):   # Extraer parametros
         kwargs['ti'].xcom_push(key='table_id', value=result_dict['DESTINATION_TABLE_LANDING'])
         kwargs['ti'].xcom_push(key='sql_script', value=result_dict['SQL_SCRIPT'])
         kwargs['ti'].xcom_push(key='archive_path', value=result_dict['ARCHIVE_DIRECTORY'])  # Assuming this column exists
+        kwargs['ti'].xcom_push(key='file_path_raw', value=ruta) 
     else:
         raise ValueError("No results found for the query.")
 
@@ -68,9 +69,10 @@ def load_parquet_to_bigquery(**kwargs):
     dataset_id = ti.xcom_pull(key='dataset_id', task_ids='obtener_parametros')
     table_id = ti.xcom_pull(key='table_id', task_ids='obtener_parametros')
     sql_script = ti.xcom_pull(key='sql_script', task_ids='obtener_parametros')
+    file_path_raw = ti.xcom_pull(key='file_path_raw', task_ids='obtener_parametros')
     
     source_path_2 = f'{source_path}{file}.parquet'
-    gcs_uri = f'gs://{source_bucket}/{source_path_2}'
+    gcs_uri = f'gs://{file_path_raw}'
     
     create_table_sql = f"{sql_script}"
 
@@ -100,13 +102,19 @@ def move_file(**kwargs):
     ti = kwargs['ti']
     file = ti.xcom_pull(key='file', task_ids='obtener_parametros')
     source_bucket = ti.xcom_pull(key='source_bucket', task_ids='obtener_parametros')
-    source_path = ti.xcom_pull(key='source_path', task_ids='obtener_parametros')
+    source_path = ti.xcom_pull(key='source_path', task_ids='obtener_parametros')  # he-dev-data-ipress/ipress_clinicas/internacional/
+    file_path_raw = ti.xcom_pull(key='file_path_raw', task_ids='obtener_parametros')
+    
     archive_path = ti.xcom_pull(key='archive_path', task_ids='obtener_parametros')
     historicos_bucket = 'he-dev-data-historicos'
     
     today_date = datetime.now().strftime('%Y%m%d')
 
-    source_blob_name = f'{source_path}{file}.parquet'
+    indice_slash_final_f1 = file_path_raw.find('/')
+    file_path_raw = file_path_raw[indice_slash_final_f1+1:]
+    source_blob_name = f'{file_path_raw}'
+    # source_blob_name = f'{source_path}{file}.parquet'    
+    
     destination_blob_name = f'{archive_path}{file}_{today_date}.parquet'
 
     print(f'Trying to move file {source_blob_name} to {destination_blob_name} in bucket {historicos_bucket}')
@@ -119,6 +127,7 @@ def move_file(**kwargs):
     
     # Get the source blob
     source_blob = source_bucket_obj.blob(source_blob_name)
+    
     
     # Copy the blob to the new bucket
     new_blob = source_bucket_obj.copy_blob(source_blob, destination_bucket_obj, destination_blob_name)

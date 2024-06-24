@@ -1,36 +1,39 @@
-from airflow import DAG
-from airflow.operators.python import PythonOperator
-from airflow.sensors.filesystem import FileSensor
-from airflow.providers.google.cloud.sensors.gcs import GCSObjectExistenceSensor
-from airflow.providers.google.cloud.transfers.gcs_to_bigquery import GCSToBigQueryOperator
-from airflow.providers.mysql.hooks.mysql import MySqlHook
 from google.cloud import bigquery
 from google.cloud import storage
-import pandas as pd
+from airflow import DAG
+from airflow.operators.python_operator import PythonOperator
+from airflow.providers.mysql.hooks.mysql import MySqlHook
 from datetime import datetime, timedelta
 
-# Ajustes de la DAG
 default_dag_args = {
-    'start_date': datetime(2023, 1, 1),  # Fecha inicial estÃ¡tica
     'owner': 'airflow',
     'depends_on_past': False,
     'email_on_failure': False,
-    'email_on_retry': False,    
-    'retries': 1,
-    'retry_delay': timedelta(minutes=5),
+    'email_on_retry': False,
+    'retries': 0,
+    'start_date': datetime(2023, 1, 1),  # Setting a past start_date to satisfy Airflow requirement
 }
 
-# FunciÃ³n para obtener y almacenar valores de MySQL
-def fetch_and_store_values(table, id_config_table, **kwargs):
+def fetch_and_store_values(table, **kwargs):
+    dag_run_conf = kwargs['dag_run'].conf
+    ruta_completa = dag_run_conf.get('id')
+    print(ruta_completa)
+    
+    indice_slash_final = ruta_completa.rfind('/')
+    ruta = ruta_completa[:indice_slash_final]
+    print(ruta)
+    
     mysql_hook = MySqlHook(mysql_conn_id='Cloud_SQL_db_compass')
 
     query = f"""
-        SELECT * FROM {table} WHERE Id = '{id_config_table}'
+        SELECT * FROM {table} WHERE concat(DESTINATION_BUCKET,'/',DESTINATION_DIRECTORY,DESTINATION_FILE_NAME,ORIGIN_EXTENSION) = '{ruta}'
     """
     connection = mysql_hook.get_conn()
     cursor = connection.cursor()
     cursor.execute(query)
     result = cursor.fetchall()
+    
+    print(result)
     
     column_names = [desc[0] for desc in cursor.description]
 
@@ -44,16 +47,10 @@ def fetch_and_store_values(table, id_config_table, **kwargs):
         kwargs['ti'].xcom_push(key='dataset_id', value=result_dict['DESTINATION_DSET_LANDING'])
         kwargs['ti'].xcom_push(key='table_id', value=result_dict['DESTINATION_TABLE_LANDING'])
         kwargs['ti'].xcom_push(key='sql_script', value=result_dict['SQL_SCRIPT'])
+        kwargs['ti'].xcom_push(key='archive_path', value=result_dict['ARCHIVE_DIRECTORY'])  # Assuming this column exists
     else:
         raise ValueError("No results found for the query.")
 
-# FunciÃ³n para descargar el archivo desde GCS al sistema local
-def write_to_tmp(storage_client, bucket_name, source_path, local_path):
-    source_bucket = storage_client.bucket(bucket_name)
-    blob = source_bucket.blob(source_path)
-    blob.download_to_filename(local_path)
-
-# FunciÃ³n para cargar datos de Parquet a BigQuery
 def load_parquet_to_bigquery(**kwargs):
     ti = kwargs['ti']
     file = ti.xcom_pull(key='file', task_ids='obtener_parametros')
@@ -64,73 +61,96 @@ def load_parquet_to_bigquery(**kwargs):
     table_id = ti.xcom_pull(key='table_id', task_ids='obtener_parametros')
     sql_script = ti.xcom_pull(key='sql_script', task_ids='obtener_parametros')
     
-    local_path = '/tmp/'
     source_path_2 = f'{source_path}{file}.parquet'
-    local_path_2 = f'{local_path}{file}.parquet'
+    gcs_uri = f'gs://{source_bucket}/{source_path_2}'
     
-    # Inicializar los clientes de Google Cloud Storage y BigQuery 
-    storage_client = storage.Client()
-    bigquery_client = bigquery.Client(project=project_id)
-    
-    # Descargar el file de GCS al local /tmp/ directory
-    write_to_tmp(storage_client, source_bucket, source_path_2, local_path_2)  
-
-    # Ejecutar el query para crear tabla de destino
     create_table_sql = f"{sql_script}"
-    bigquery_client.query(create_table_sql).result()
+
+    client = bigquery.Client(project=project_id)
     
-    # Carga data del local Parquet file a un Pandas DataFrame
-    df = pd.read_parquet(local_path_2, engine='pyarrow')
+    # Execute the create table SQL
+    client.query(create_table_sql).result()
 
-    # Cargar el dataframe en la tabla de BigQuery
-    job_config = bigquery.LoadJobConfig(write_disposition="WRITE_APPEND")
-    dataset_ref = bigquery_client.dataset(dataset_id)
-    table_ref = dataset_ref.table(table_id)
+    job_config = bigquery.LoadJobConfig(
+        source_format=bigquery.SourceFormat.PARQUET,
+        write_disposition=bigquery.WriteDisposition.WRITE_APPEND,
+    )
+
+    table_ref = client.dataset(dataset_id).table(table_id)
+
+    load_job = client.load_table_from_uri(
+        gcs_uri,
+        table_ref,
+        job_config=job_config
+    )
+
+    load_job.result()
+
+    print(f'Loaded {load_job.output_rows} rows into {dataset_id}:{table_id}.')
+
+def move_file(**kwargs):
+    ti = kwargs['ti']
+    file = ti.xcom_pull(key='file', task_ids='obtener_parametros')
+    source_bucket = ti.xcom_pull(key='source_bucket', task_ids='obtener_parametros')
+    source_path = ti.xcom_pull(key='source_path', task_ids='obtener_parametros')
+    archive_path = ti.xcom_pull(key='archive_path', task_ids='obtener_parametros')
+    historicos_bucket = 'he-dev-data-historicos'
     
-    job = bigquery_client.load_table_from_dataframe(df, table_ref, job_config=job_config)
-    job.result()  # Wait for the job to complete
+    today_date = datetime.now().strftime('%Y%m%d')
 
-    print(f'Loaded {df.shape[0]} rows into {dataset_id}:{table_id}.')
+    source_blob_name = f'{source_path}{file}.parquet'
+    destination_blob_name = f'{archive_path}{file}_{today_date}.parquet'
 
-# DefiniciÃ³n de la DAG
+    print(f'Trying to move file {source_blob_name} to {destination_blob_name} in bucket {historicos_bucket}')
+
+    storage_client = storage.Client()
+    
+    # Get the source and destination buckets
+    source_bucket_obj = storage_client.bucket(source_bucket)
+    destination_bucket_obj = storage_client.bucket(historicos_bucket)
+    
+    # Get the source blob
+    source_blob = source_bucket_obj.blob(source_blob_name)
+    
+    # Copy the blob to the new bucket
+    new_blob = source_bucket_obj.copy_blob(source_blob, destination_bucket_obj, destination_blob_name)
+    
+    print(f'File {source_blob_name} copied to {historicos_bucket}/{destination_blob_name}')
+    
+    # Delete the original blob
+    source_blob.delete()
+    
+    print(f'File {source_blob_name} deleted from {source_bucket}')
+
 with DAG(
-    'dev6_dag_trigger_siniestros_gcs_bq',
+    'dev_dag_siniestros_parquet_GCS_BQ_GCS',
     catchup=False,
     default_args=default_dag_args,
     description='Import data de siniestros de GCS a BigQuery',
-    schedule_interval=timedelta(minutes=5),
+    schedule_interval=None,  # No schedule interval as it will be triggered by an event
+    max_active_runs=10,  # Maximum number of concurrent DAG runs
+    concurrency=10  # Maximum number of concurrent task instances
 ) as dag:
 
-    # Sensor para monitorear el bucket de GCS por cambios en el archivo Parquet
-    detect_parquet_file = GCSObjectExistenceSensor(
-    task_id='detect_parquet_file',
-    bucket='us-east4-dev-airflow-data-9879bdea-bucket',
-    object='data/data-ipress/ipress_clinicas/internacional/nombre_archivo.parquet',  # Use wildcard for pattern matching
-    google_cloud_conn_id='google_cloud_storage_default',
-    timeout=60 * 60 * 24,  # 24 hours
-    poke_interval=60,  # Check every 60 seconds
-    dag=dag,
-    )
-
-    # Tarea para obtener parÃ¡metros de la base de datos
     task_fetch_bq_params = PythonOperator(
         task_id='obtener_parametros',
         python_callable=fetch_and_store_values,
         op_kwargs={
             'table': 'DATA_FLOW_CONFIG',
-            'id_config_table': 'd10532fa-3222-47c9-a5b4-faf62b842a11'
         },
+        provide_context=True,
     )
 
-    # Tarea para cargar datos de Parquet a BigQuery, condicionada por el sensor
     task_load_parquet_to_bq = PythonOperator(
         task_id='importar_gcs_to_bq',
         python_callable=load_parquet_to_bigquery,
-        provide_context=True,  # Necesario para acceder a ti.xcom_pull
+        provide_context=True,
     )
 
-    # Definir la secuencia de tareas y la dependencia condicional
-    detect_parquet_file >> task_fetch_bq_params >> task_load_parquet_to_bq
+    task_move_file = PythonOperator(
+        task_id='mover_archivo',
+        python_callable=move_file,
+        provide_context=True,
+    )
 
-    # Establecer la dependencia condicional basada en el resultado del sensor
-    task_load_parquet_to_bq << detect_parquet_file
+    task_fetch_bq_params >> task_load_parquet_to_bq >> task_move_file
