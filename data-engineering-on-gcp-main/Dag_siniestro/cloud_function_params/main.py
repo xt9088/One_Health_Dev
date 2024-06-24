@@ -33,13 +33,19 @@ def get_db_password():
 
 def trigger_dag_gcf(data, context=None):
     prefix = PREFIX
-    file_name = data['name']
-    pre_file = file_name.split('/')[-1]
-    file = pre_file.split('_')[-2]      ###### extrae nombre de archivo ejemplo : "siniestro" #####
     ruta_completa = data["id"]
     indice_slash_final = ruta_completa.rfind('/')
     ruta = ruta_completa[:indice_slash_final]
     print(ruta)
+
+    file_name = ruta
+    pre_file = file_name.split('/')[-1]
+    file = pre_file.split('_')[-2]
+    indice_slash_final_file = file_name.rfind('/')
+    prefix_file = file_name[:indice_slash_final_file]
+    file_path = prefix_file+'/'+file+'.parquet'
+    print(file_path)
+    
 
     if not file_name.startswith(prefix):
         print(f"File {ruta} is not in the prefix {prefix}. The DAG will not be executed.")

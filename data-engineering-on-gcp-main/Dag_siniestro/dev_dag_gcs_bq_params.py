@@ -23,10 +23,18 @@ def fetch_and_store_values(table, **kwargs):   # Extraer parametros
     ruta = ruta_completa[:indice_slash_final]
     print(ruta)
     
+    file_name = ruta
+    pre_file = file_name.split('/')[-1]
+    file = pre_file.split('_')[-2]
+    indice_slash_final_file = file_name.rfind('/')
+    prefix_file = file_name[:indice_slash_final_file]
+    file_path = prefix_file+'/'+file+'.parquet'
+    print(file_path)
+    
     mysql_hook = MySqlHook(mysql_conn_id='Cloud_SQL_db_compass')
 
     query = f"""
-        SELECT * FROM {table} WHERE concat(DESTINATION_BUCKET,'/',DESTINATION_DIRECTORY,DESTINATION_FILE_NAME,ORIGIN_EXTENSION) = '{ruta}'
+        SELECT * FROM {table} WHERE concat(DESTINATION_BUCKET,'/',DESTINATION_DIRECTORY,DESTINATION_FILE_NAME,ORIGIN_EXTENSION) = '{file_path}'
     """
     connection = mysql_hook.get_conn()
     cursor = connection.cursor()
