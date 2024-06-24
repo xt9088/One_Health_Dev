@@ -226,3 +226,7 @@ CREATE TABLE IF NOT EXISTS your_dataset.your_table (
   des_sexo_afiliado STRING,
   est_cambios STRING
 );
+
+  UPDATE `db-compass`.`DATA_FLOW_CONFIG`
+  SET DESTINATION_FILE_NAME = siniestro
+  WHERE ID =''
