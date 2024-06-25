@@ -33,56 +33,65 @@ def get_db_password():
 
 def trigger_dag_gcf(data, context=None):
     prefix = PREFIX
+
     ruta_completa = data["id"]
+    
+    print(f"trigger_dag_gcf: Metadata data(id) del evento accionador - {ruta_completa}")
+    
     indice_slash_final = ruta_completa.rfind('/')
     ruta = ruta_completa[:indice_slash_final]
-    print(ruta)
+    
 
+    print(f"trigger_dag_gcf: Evento accionado por la ruta: - {ruta}")
+    
     file_name = ruta
     pre_file = file_name.split('/')[-1]
     file = pre_file.split('_')[-2]
     indice_slash_final_file = file_name.rfind('/')
     prefix_file = file_name[:indice_slash_final_file]
     file_path = prefix_file+'/'+file+'.parquet'
-    print(file_path)
     
+    
+    print(f"trigger_dag_gcf: Ruta a identificar en tabla parametros (la estructura debe ser mdm_NOMBRE_fecha)- {file_path}")
 
-    if not file_name.startswith(prefix):
-        print(f"File {ruta} is not in the prefix {prefix}. The DAG will not be executed.")
-        return
+    #if not file_name.startswith(prefix):
+    #    print(f"File {file_path} is not in the prefix {prefix}. The DAG will not be executed.")
+    #    return
 
-    dag_id = get_dag_id(ruta)
+    dag_id = get_dag_id(file_path)
 
     if not dag_id:
-        print(f"No matching DAG found for the file: {ruta}")
+        print(f"No matching DAG found for the file: {file_path}")
         return
 
-    print(f"data: {data}")
+    print(f"Metadata del evento detectado 'data': {data}")
 
     composer2_airflow_rest_api.trigger_dag(WEB_SERVER_URL, dag_id, data)
-    print(f"DAG {dag_id} triggered successfully for file {ruta}.")
+    print(f"DAG {dag_id} activado satisfactoriamente para el evento accionado en la ruta: {ruta}.")
 
-def get_dag_id(ruta: str) -> str:
+def get_dag_id(file_path: str) -> str:
     instance_connection_name = os.getenv('INSTANCE_CONNECTION_NAME')
     db_user = os.getenv('DB_USER')
     db_password = get_db_password()  # Retrieve the password securely
     db_name = os.getenv('DB_NAME')
+    host = os.getenv('HOST')
+    port = os.getenv('PORT')
 
     connection_config = {
         'user': db_user,
         'password': db_password,
-        'host': '35.245.223.109',  # Replace with the IP address of your Cloud SQL instance
-        'port': 3306,
+        'host': host,  # Replace with the IP address of your Cloud SQL instance
+        'port': port,
         'database': db_name,
     }
 
     conn = mysql.connector.connect(**connection_config)
     cursor = conn.cursor()
 
-    query = f"SELECT DAG_STORAGE_DSET_NAME FROM `DATA_FLOW_CONFIG` WHERE concat(DESTINATION_BUCKET,'/',DESTINATION_DIRECTORY,DESTINATION_FILE_NAME,ORIGIN_EXTENSION) = '{ruta}'"
+    query = f"SELECT DAG_STORAGE_DSET_NAME FROM `DATA_FLOW_CONFIG` WHERE concat(DESTINATION_BUCKET,'/',DESTINATION_DIRECTORY,DESTINATION_FILE_NAME,ORIGIN_EXTENSION) = '{file_path}'"
     cursor.execute(query)
     result = cursor.fetchone()
-    print(result)
+    print(f"DAG encontrado con los parametros de 'data' del evento: {result}")
     cursor.close()
     conn.close()
 

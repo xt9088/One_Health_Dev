@@ -8,20 +8,20 @@ from datetime import datetime, timedelta
 default_dag_args = {
     'owner': 'airflow',
     'depends_on_past': False,
-    'email_on_failure': False,
+    'email_on_failure': 'xt9088@rimac.com.pe',
     'email_on_retry': False,
     'retries': 0,
-    'start_date': datetime(2023, 1, 1),  # Setting a past start_date to satisfy Airflow requirement
+    'start_date': datetime(2023, 1, 1),
 }
 
-def fetch_and_store_values(table, **kwargs):  # Extraer parametros
-    dag_run_conf = kwargs['dag_run'].conf     # Extraccion del valor de la ruta de configuraciones id (ruta completa con bucket , archivo y codigo)
-    ruta_completa = dag_run_conf.get('id')    # Extraccion del valor de la ruta de configuraciones id (ruta completa con bucket , archivo y codigo)
-    print(ruta_completa)
+def fetch_and_store_values(table, **kwargs):
+    dag_run_conf = kwargs['dag_run'].conf
+    ruta_completa = dag_run_conf.get('id')
+    print(f"Fetch and Store Values: conf(id) del evento - {ruta_completa}")
     
-    indice_slash_final = ruta_completa.rfind('/') 
-    ruta = ruta_completa[:indice_slash_final] 
-    print(ruta)     #  he-dev-data-ipress/ipress_clinicas/internacional/mdm_siniestro_20240611212129
+    indice_slash_final = ruta_completa.rfind('/')
+    ruta = ruta_completa[:indice_slash_final]
+    print(f"Fetch and Store Values: Ruta completa del evento - {ruta}")
     
     file_name = ruta
     pre_file = file_name.split('/')[-1]
@@ -29,19 +29,20 @@ def fetch_and_store_values(table, **kwargs):  # Extraer parametros
     indice_slash_final_file = file_name.rfind('/')
     prefix_file = file_name[:indice_slash_final_file]
     file_path = prefix_file+'/'+file+'.parquet'
-    print(file_path)    #  he-dev-data/he-dev-data-ipress/ipress_clinicas/internacional/siniestro.parquet
+    print(f"Fetch and Store Values: Ruta a identificar en tabla parametros (la estructura debe ser mdm_NOMBRE_fecha)- {file_path}")
     
     mysql_hook = MySqlHook(mysql_conn_id='Cloud_SQL_db_compass')
 
     query = f"""
-        SELECT * FROM {table} WHERE concat(DESTINATION_BUCKET,'/',DESTINATION_DIRECTORY,DESTINATION_FILE_NAME,ORIGIN_EXTENSION) = '{file_path}'
+        SELECT * FROM {table} 
+        WHERE CONCAT(DESTINATION_BUCKET, '/', DESTINATION_DIRECTORY, DESTINATION_FILE_NAME, ORIGIN_EXTENSION) = '{file_path}'
     """
     connection = mysql_hook.get_conn()
     cursor = connection.cursor()
     cursor.execute(query)
     result = cursor.fetchall()
     
-    print(result)
+    print(f"Fetch and Store Values: Resultado del Query ejecutado (Fila a Procesar por DAG) - {result}")
     
     column_names = [desc[0] for desc in cursor.description]
 
@@ -55,31 +56,27 @@ def fetch_and_store_values(table, **kwargs):  # Extraer parametros
         kwargs['ti'].xcom_push(key='dataset_id', value=result_dict['DESTINATION_DSET_LANDING'])
         kwargs['ti'].xcom_push(key='table_id', value=result_dict['DESTINATION_TABLE_LANDING'])
         kwargs['ti'].xcom_push(key='sql_script', value=result_dict['SQL_SCRIPT'])
-        kwargs['ti'].xcom_push(key='archive_path', value=result_dict['ARCHIVE_DIRECTORY'])  # Assuming this column exists
-        kwargs['ti'].xcom_push(key='file_path_raw', value=ruta) 
+        kwargs['ti'].xcom_push(key='archive_path', value=result_dict['ARCHIVE_DIRECTORY'])
+        kwargs['ti'].xcom_push(key='bucket_historico', value=result_dict['DESTINATION_BUCKET_HIST'])
+        kwargs['ti'].xcom_push(key='file_path_raw', value=ruta)
     else:
-        raise ValueError("No results found for the query.")
+        raise ValueError("Fetch and Store Values: No hubo resultado del query.")
 
 def load_parquet_to_bigquery(**kwargs):
     ti = kwargs['ti']
     file = ti.xcom_pull(key='file', task_ids='obtener_parametros')
-    source_bucket = ti.xcom_pull(key='source_bucket', task_ids='obtener_parametros')
-    source_path = ti.xcom_pull(key='source_path', task_ids='obtener_parametros')
     project_id = ti.xcom_pull(key='project_id', task_ids='obtener_parametros')
     dataset_id = ti.xcom_pull(key='dataset_id', task_ids='obtener_parametros')
     table_id = ti.xcom_pull(key='table_id', task_ids='obtener_parametros')
     sql_script = ti.xcom_pull(key='sql_script', task_ids='obtener_parametros')
     file_path_raw = ti.xcom_pull(key='file_path_raw', task_ids='obtener_parametros')
     
-    source_path_2 = f'{source_path}{file}.parquet'
     gcs_uri = f'gs://{file_path_raw}'
     
-    create_table_sql = f"{sql_script}"
-
-    client = bigquery.Client(project=project_id)
+    print(f"Carga de Parquet a BigQuery: Inicio de carga para ruta evento {gcs_uri} en tabla {project_id}.{dataset_id}.{table_id}")
     
-    # Execute the create table SQL
-    client.query(create_table_sql).result()
+    client = bigquery.Client(project=project_id)
+    client.query(sql_script).result()
 
     job_config = bigquery.LoadJobConfig(
         source_format=bigquery.SourceFormat.PARQUET,
@@ -96,57 +93,44 @@ def load_parquet_to_bigquery(**kwargs):
 
     load_job.result()
 
-    print(f'Loaded {load_job.output_rows} rows into {dataset_id}:{table_id}.')
+    print(f"Carga de Parquet to BigQuery: Ingestado {load_job.output_rows} filas a {dataset_id}.{table_id}")
 
 def move_file(**kwargs):
     ti = kwargs['ti']
     file = ti.xcom_pull(key='file', task_ids='obtener_parametros')
     source_bucket = ti.xcom_pull(key='source_bucket', task_ids='obtener_parametros')
-    source_path = ti.xcom_pull(key='source_path', task_ids='obtener_parametros')  # he-dev-data-ipress/ipress_clinicas/internacional/
     file_path_raw = ti.xcom_pull(key='file_path_raw', task_ids='obtener_parametros')
-    
     archive_path = ti.xcom_pull(key='archive_path', task_ids='obtener_parametros')
-    historicos_bucket = 'he-dev-data-historicos'
+    historicos_bucket = ti.xcom_pull(key='bucket_historico', task_ids='obtener_parametros')
     
     today_date = datetime.now().strftime('%Y%m%d')
 
-    indice_slash_final_f1 = file_path_raw.find('/')
-    file_path_raw = file_path_raw[indice_slash_final_f1+1:]
-    source_blob_name = f'{file_path_raw}'
-    # source_blob_name = f'{source_path}{file}.parquet'    
+    source_blob_name = f'{file_path_raw[file_path_raw.find("/") + 1:]}'
     
     destination_blob_name = f'{archive_path}{file}_{today_date}.parquet'
 
-    print(f'Trying to move file {source_blob_name} to {destination_blob_name} in bucket {historicos_bucket}')
+    print(f"Mover File: Tratando de mover file {source_blob_name} a {destination_blob_name} en bucket {historicos_bucket}")
 
     storage_client = storage.Client()
     
-    # Get the source and destination buckets
     source_bucket_obj = storage_client.bucket(source_bucket)
-    destination_bucket_obj = storage_client.bucket(historicos_bucket)
     
-    # Get the source blob
     source_blob = source_bucket_obj.blob(source_blob_name)
     
+    print(f"Mover File: File {source_blob_name} copiado a {historicos_bucket}/{destination_blob_name}")
     
-    # Copy the blob to the new bucket
-    new_blob = source_bucket_obj.copy_blob(source_blob, destination_bucket_obj, destination_blob_name)
-    
-    print(f'File {source_blob_name} copied to {historicos_bucket}/{destination_blob_name}')
-    
-    # Delete the original blob
     source_blob.delete()
     
-    print(f'File {source_blob_name} deleted from {source_bucket}')
+    print(f"Mover File: File {source_blob_name} borrado de {source_bucket}")
 
 with DAG(
     'dev_dag_siniestros_parquet_GCS_BQ_GCS',
     catchup=False,
     default_args=default_dag_args,
     description='Import data de siniestros de GCS a BigQuery',
-    schedule_interval=None,  # No schedule interval as it will be triggered by an event
-    max_active_runs=10,  # Maximum number of concurrent DAG runs
-    concurrency=10  # Maximum number of concurrent task instances
+    schedule_interval=None,
+    max_active_runs=10,
+    concurrency=10
 ) as dag:
 
     task_fetch_bq_params = PythonOperator(
