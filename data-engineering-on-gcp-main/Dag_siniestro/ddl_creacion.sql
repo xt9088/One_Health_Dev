@@ -1,8 +1,8 @@
 SELECT t.ddl 
-FROM `he-dev-data.dev_data_analytics.INFORMATION_SCHEMA.TABLES` t
+FROM `he-dev-data.dev_data_landing.INFORMATION_SCHEMA.TABLES` t
 WHERE t.table_name = 'anl_tmp_part_month_siniestro_t';
 
-CREATE TABLE `he-dev-composer.dev_data_analytics.anl_tmp_part_month_siniestro_t`
+CREATE TABLE `he-dev-data.dev_data_analytics.anl_tmp_part_month_siniestro_t`
 (
   id_siniestro STRING,
   id_origen STRING,
