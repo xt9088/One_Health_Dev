@@ -1,0 +1,60 @@
+{
+    "dag_id": "ue4_{env}_com_gco_export-001-delivery_compass",
+    "write_dispositions": [
+        {
+            "write_disposition": "WRITE_APPEND",
+            "scripts": [
+                "sql_script_a",
+                "sql_script_b"
+            ]
+        },
+        {
+            "write_disposition": "WRITE_TRUNCATE",
+            "scripts": [
+                "sql_script_c"
+            ]
+        }
+    ],
+    "services_account": "sa-nprd-dt-compass-ft-exp-sftp@rs-nprd-dlk-dt-expo-22f1.iam.gserviceaccount.com",
+    "retries": "1",
+    "retry_delay": "1",
+    "export_bq_table_a": {
+        "tables": [
+            {
+                "table": "diferencial_a",
+                "dataset": "delivery_onehealth_a",
+                "header": "false",
+                "format": "PARQUET"
+            }
+        ],
+        "project": "rs-nprd-dlk-dt-anlyt-mlk-0c8a",
+        "bucket": "ue4-nonprod-dt-expo-gcs-compass-001",
+        "project_trsv": "rs-nprd-dlk-dt-trsv-digt-f7ef"
+    },
+    "export_bq_table_b": {
+        "tables": [
+            {
+                "table": "diferencial_b",
+                "dataset": "delivery_onehealth_b",
+                "header": "false",
+                "format": "PARQUET"
+            }
+        ],
+        "project": "rs-nprd-dlk-dt-anlyt-mlk-0c8a",
+        "bucket": "ue4-nonprod-dt-expo-gcs-compass-001",
+        "project_trsv": "rs-nprd-dlk-dt-trsv-digt-f7ef"
+    },
+    "export_bq_table_c": {
+        "tables": [
+            {
+                "table": "diferencial_c",
+                "dataset": "delivery_onehealth_c",
+                "header": "false",
+                "format": "PARQUET"
+            }
+        ],
+        "project": "rs-nprd-dlk-dt-anlyt-mlk-0c8a",
+        "bucket": "ue4-nonprod-dt-expo-gcs-compass-001",
+        "project_trsv": "rs-nprd-dlk-dt-trsv-digt-f7ef"
+    }
+}
