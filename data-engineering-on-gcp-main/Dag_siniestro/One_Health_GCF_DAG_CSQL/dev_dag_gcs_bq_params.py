@@ -1,9 +1,11 @@
 from google.cloud import bigquery
 from google.cloud import storage
+import pyarrow.parquet as pq
 from airflow import DAG
 from airflow.operators.python_operator import PythonOperator
 from airflow.providers.mysql.hooks.mysql import MySqlHook
 from datetime import datetime, timedelta
+import re
 
 default_dag_args = {
     'owner': 'airflow',
@@ -62,6 +64,79 @@ def fetch_and_store_values(table, **kwargs):
     else:
         raise ValueError("Fetch and Store Values: No hubo resultado del query.")
 
+def fetch_bq_table_schema(project_id, dataset_id, table_id):
+    client = bigquery.Client(project=project_id)
+    table_ref = client.dataset(dataset_id).table(table_id)
+    table = client.get_table(table_ref)
+    return {schema_field.name: schema_field.field_type for schema_field in table.schema}
+
+def fetch_parquet_schema(gcs_uri):
+    storage_client = storage.Client()
+    bucket_name, file_path = gcs_uri.replace('gs://', '').split('/', 1)
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(file_path)
+    with blob.open('rb') as f:
+        parquet_file = pq.ParquetFile(f)
+        schema = {field.name: str(field.type) for field in parquet_file.schema_arrow}
+        print(f"Fetched Parquet schema: {schema}")
+        return schema
+
+def parquet_type_to_bq_type(parquet_type):
+    if 'string' in parquet_type:
+        return 'STRING'
+    elif 'int32' in parquet_type:
+        return 'INTEGER'
+    elif 'int64' in parquet_type:
+        return 'INTEGER'
+    elif 'boolean' in parquet_type:
+        return 'BOOLEAN'
+    elif 'float' in parquet_type:
+        return 'FLOAT'
+    elif 'double' in parquet_type:
+        return 'FLOAT'
+    elif re.search(r'decimal.*', parquet_type):
+        return 'NUMERIC'
+    #elif 'decimal' in parquet_type or 'decimal128' in parquet_type:
+    #    return 'NUMERIC'
+    elif 'timestamp' in parquet_type:
+        return 'TIMESTAMP'
+    elif 'date' in parquet_type:
+        return 'DATE'
+    elif 'time' in parquet_type:
+        return 'TIME'
+    else:
+        return 'STRING'  # Default type
+
+def add_missing_columns_to_bq(project_id, dataset_id, table_id, missing_columns):
+    client = bigquery.Client(project=project_id)
+    table_ref = client.dataset(dataset_id).table(table_id)
+    table = client.get_table(table_ref)
+    
+    new_schema = table.schema[:]
+    for column, column_type in missing_columns.items():
+        bq_type = parquet_type_to_bq_type(column_type)
+        new_schema.append(bigquery.SchemaField(name=column, field_type=bq_type))
+    
+    table.schema = new_schema
+    client.update_table(table, ['schema'])
+    print(f"Added missing columns: {missing_columns} to {dataset_id}.{table_id}")
+
+def validate_schemas(project_id, dataset_id, table_id, gcs_uri):
+    bq_schema = fetch_bq_table_schema(project_id, dataset_id, table_id)
+    
+    parquet_schema = fetch_parquet_schema(gcs_uri)
+    
+    missing_columns = {column: parquet_schema[column] for column in parquet_schema if column not in bq_schema}
+    conflicting_columns = {column: parquet_schema[column] for column in parquet_schema if column in bq_schema and parquet_type_to_bq_type(parquet_schema[column]) != bq_schema[column]}
+    
+    if conflicting_columns:
+        raise ValueError(f"Schema conflicts found: {conflicting_columns}")
+    if missing_columns:
+        add_missing_columns_to_bq(project_id, dataset_id, table_id, missing_columns)
+        print(f"Schema updated with missing columns: {missing_columns}")
+    else:
+        print("No schema mismatches found.")
+
 def load_parquet_to_bigquery(**kwargs):
     ti = kwargs['ti']
     file = ti.xcom_pull(key='file', task_ids='obtener_parametros')
@@ -72,11 +147,14 @@ def load_parquet_to_bigquery(**kwargs):
     file_path_raw = ti.xcom_pull(key='file_path_raw', task_ids='obtener_parametros')
     
     gcs_uri = f'gs://{file_path_raw}'
-    
+
     print(f"Carga de Parquet a BigQuery: Inicio de carga para ruta evento {gcs_uri} en tabla {project_id}.{dataset_id}.{table_id}")
-    
+
     client = bigquery.Client(project=project_id)
     client.query(sql_script).result()
+    
+    # Validate and update schemas if needed
+    validate_schemas(project_id, dataset_id, table_id, gcs_uri)
 
     job_config = bigquery.LoadJobConfig(
         source_format=bigquery.SourceFormat.PARQUET,
