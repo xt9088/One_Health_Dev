@@ -5,6 +5,64 @@ WHERE t.table_name = 'anl_tmp_part_month_siniestro_t';
 alter table `he-dev-data.dev_data_landing.iafas_mdm_siniestro2`
 drop column est_cambios;
 
+SELECT * FROM `he-dev-data.dev_data_landing.iafas_mdm_siniestro2` LIMIT 100;  
+
+SELECT COUNT(*) AS column_count
+FROM `he-dev-data.dev_data_landing.INFORMATION_SCHEMA.COLUMNS`
+WHERE table_name = 'iafas_mdm_siniestro2';
+
+alter table `he-dev-data.dev_data_landing.iafas_mdm_siniestro2`
+drop column est_cambios;
+
+alter table `he-dev-data.dev_data_landing.iafas_mdm_siniestro2`
+drop column des_sexo_afiliado;
+
+alter table `he-dev-data.dev_data_landing.iafas_mdm_siniestro2`
+drop column edad_afiliado_ocurrencia;
+
+alter table `he-dev-data.dev_data_landing.iafas_mdm_siniestro2`
+drop column edad_afiliado;
+
+alter table `he-dev-data.dev_data_landing.iafas_mdm_siniestro2`
+drop column fec_nacimiento_afiliado;
+
+alter table `he-dev-data.dev_data_landing.iafas_mdm_siniestro2`
+drop column fec_ult_liquidacion;
+
+
+
+alter table `he-dev-data.dev_data_landing.iafas_mdm_siniestro2`
+drop column fec_hora_ocurrencia;
+
+alter table `he-dev-data.dev_data_landing.iafas_mdm_siniestro2`
+drop column fec_ult_liquidacion;	
+
+alter table `he-dev-data.dev_data_landing.iafas_mdm_siniestro2`
+drop column fec_notificacion;
+
+alter table `he-dev-data.dev_data_landing.iafas_mdm_siniestro2`
+drop column	fec_operacion;	
+
+alter table `he-dev-data.dev_data_landing.iafas_mdm_siniestro2`
+drop column mnt_gasto_total_con_igv;
+
+alter table `he-dev-data.dev_data_landing.iafas_mdm_siniestro2`
+drop column nro_nota_credito;
+
+alter table `he-dev-data.dev_data_landing.iafas_mdm_siniestro2`
+drop column	mnt_nota_credito;
+
+
+
+drop table `he-dev-data.dev_data_landing.iafas_mdm_siniestro2`;
+
+
+
+
+
+
+
+
 CREATE TABLE `he-dev-data.dev_data_analytics.anl_tmp_part_month_siniestro_t`
 (
   id_siniestro STRING,

@@ -192,8 +192,11 @@ def move_file(**kwargs):
     storage_client = storage.Client()
     
     source_bucket_obj = storage_client.bucket(source_bucket)
+    destination_bucket_obj = storage_client.bucket(historicos_bucket)
     
     source_blob = source_bucket_obj.blob(source_blob_name)
+    
+    new_blob = source_bucket_obj.copy_blob(source_blob, destination_bucket_obj, destination_blob_name)
     
     print(f"Mover File: File {source_blob_name} copiado a {historicos_bucket}/{destination_blob_name}")
     
@@ -207,8 +210,8 @@ with DAG(
     default_args=default_dag_args,
     description='Import data de siniestros de GCS a BigQuery',
     schedule_interval=None,
-    max_active_runs=10,
-    concurrency=10
+    max_active_runs=15,
+    concurrency=1
 ) as dag:
 
     task_fetch_bq_params = PythonOperator(
