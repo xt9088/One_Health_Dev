@@ -99,7 +99,7 @@ INSERT INTO `db-compass`.`DATA_FLOW_CONFIG` (
     est_cambios STRING,
     fec_insercion DATE,
     fec_modificacion DATE,
-    bq__soft_deleted BOOL
+    bq__soft_deleted BOOLEAN
 );',
     'he-dev-data-ipress/ipress_clinicas/internacional/Inventario_siniestros/',
     'he-dev-data-historicos'
@@ -150,7 +150,7 @@ INSERT INTO `db-compass`.`DATA_FLOW_CONFIG` (
     'iafas_mdm_siniestro',
     'dev_airflow_data',
     'dev_dag_siniestros_parquet_GCS_BQ_GCS',
-    'CREATE TABLE IF NOT EXISTS `he-dev-data.dev_data_landing.iafas_mdm_siniestro` ( id_siniestro STRING, tip_ingreso_siniestro NUMERIC, tip_reclamo STRING, des_tipo_reclamo STRING, num_obligacion STRING, tip_procedencia STRING, ind_tedef_salud STRING, fec_hora_ocurrencia TIMESTAMP, fec_ult_liquidacion TIMESTAMP, fec_notificacion TIMESTAMP, fec_operacion TIMESTAMP, mnt_gasto_total_con_igv NUMERIC, nro_nota_credito STRING, mnt_nota_credito NUMERIC, mnt_planilla_afiliado_usd NUMERIC, mnt_planilla_afiliado_sol NUMERIC, mnt_observado NUMERIC, id_persona_proveedor_siniestro STRING, tip_documento_proveedor_siniestro STRING, num_documento_proveedor_siniestro STRING, nom_completo_proveedor_siniestro STRING, dir_proveedor_siniestro STRING, cod_sede_proveedor_siniestro STRING, nom_sede_proveedor_siniestro STRING, dir_sede_proveedor_siniestro STRING, id_persona_afiliado STRING, tip_documento_afiliado STRING, num_documento_afiliado STRING, nom_completo_afiliado STRING, fec_nacimiento_afiliado DATE, edad_afiliado NUMERIC, edad_afiliado_ocurrencia NUMERIC, des_sexo_afiliado STRING, est_cambios STRING )',
+    'CREATE TABLE IF NOT EXISTS `he-dev-data.dev_data_landing.iafas_mdm_siniestro2` ( id_siniestro STRING, tip_ingreso_siniestro NUMERIC, tip_reclamo STRING, des_tipo_reclamo STRING, num_obligacion STRING, tip_procedencia STRING, ind_tedef_salud STRING, fec_hora_ocurrencia TIMESTAMP, fec_ult_liquidacion TIMESTAMP, fec_notificacion TIMESTAMP, fec_operacion TIMESTAMP, mnt_gasto_total_con_igv NUMERIC, nro_nota_credito STRING, mnt_nota_credito NUMERIC, mnt_planilla_afiliado_usd NUMERIC, mnt_planilla_afiliado_sol NUMERIC, mnt_observado NUMERIC, id_persona_proveedor_siniestro STRING, tip_documento_proveedor_siniestro STRING, num_documento_proveedor_siniestro STRING, nom_completo_proveedor_siniestro STRING, dir_proveedor_siniestro STRING, cod_sede_proveedor_siniestro STRING, nom_sede_proveedor_siniestro STRING, dir_sede_proveedor_siniestro STRING, id_persona_afiliado STRING, tip_documento_afiliado STRING, num_documento_afiliado STRING, nom_completo_afiliado STRING, fec_nacimiento_afiliado DATE, edad_afiliado NUMERIC, edad_afiliado_ocurrencia NUMERIC, des_sexo_afiliado STRING, est_cambios STRING )',
     'dev_data_analytics',
     'anl_tmp_part_month_siniestro_t2',
     'he-dev-data-ipress/ipress_clinicas/internacional/Inventario_siniestros/',

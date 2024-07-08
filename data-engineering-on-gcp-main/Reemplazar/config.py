@@ -1,20 +1,9 @@
 from google.cloud import bigquery
 from google.cloud import storage
 import pyarrow.parquet as pq
-from airflow import DAG
-from airflow.operators.python_operator import PythonOperator
 from airflow.providers.mysql.hooks.mysql import MySqlHook
-from datetime import datetime, timedelta
+from datetime import datetime
 import re
-
-default_dag_args = {
-    'owner': 'airflow',
-    'depends_on_past': False,
-    'email_on_failure': 'xt9088@rimac.com.pe',
-    'email_on_retry': False,
-    'retries': 0,
-    'start_date': datetime(2023, 1, 1),
-}
 
 def fetch_and_store_values(table, **kwargs):
     dag_run_conf = kwargs['dag_run'].conf
@@ -96,8 +85,6 @@ def parquet_type_to_bq_type(parquet_type):
         return 'FLOAT'
     elif re.search(r'decimal.*', parquet_type):
         return 'NUMERIC'
-    #elif 'decimal' in parquet_type or 'decimal128' in parquet_type:
-    #    return 'NUMERIC'
     elif 'timestamp' in parquet_type:
         return 'TIMESTAMP'
     elif 'date' in parquet_type:
@@ -157,11 +144,6 @@ def load_parquet_to_bigquery(**kwargs):
     # Validate and update schemas if needed
     validate_schemas(project_id, dataset_id, table_id, gcs_uri)
 
-    #job_config = bigquery.LoadJobConfig(
-    #    source_format=bigquery.SourceFormat.PARQUET,
-    #   write_disposition=bigquery.WriteDisposition.WRITE_APPEND,
-    #)
-    
     job_config = bigquery.LoadJobConfig(
         source_format=bigquery.SourceFormat.PARQUET,
         write_disposition=bigquery.WriteDisposition.WRITE_APPEND,
@@ -181,6 +163,9 @@ def load_parquet_to_bigquery(**kwargs):
     print(f"Carga de Parquet to BigQuery: Ingestado {load_job.output_rows} filas a {dataset_id}.{table_id}")
 
 def move_file(**kwargs):
+    from google.cloud import storage
+    from datetime import datetime
+
     ti = kwargs['ti']
     file = ti.xcom_pull(key='file', task_ids='obtener_parametros')
     source_bucket = ti.xcom_pull(key='source_bucket', task_ids='obtener_parametros')
@@ -210,36 +195,3 @@ def move_file(**kwargs):
     source_blob.delete()
     
     print(f"Mover File: File {source_blob_name} borrado de {source_bucket}")
-
-with DAG(
-    'dev_dag_siniestros_parquet_GCS_BQ_GCS',
-    catchup=False,
-    default_args=default_dag_args,
-    description='Import data de siniestros de GCS a BigQuery',
-    schedule_interval=None,
-    max_active_runs=15,
-    concurrency=1
-) as dag:
-
-    task_fetch_bq_params = PythonOperator(
-        task_id='obtener_parametros',
-        python_callable=fetch_and_store_values,
-        op_kwargs={
-            'table': 'DATA_FLOW_CONFIG',
-        },
-        provide_context=True,
-    )
-
-    task_load_parquet_to_bq = PythonOperator(
-        task_id='importar_gcs_to_bq',
-        python_callable=load_parquet_to_bigquery,
-        provide_context=True,
-    )
-
-    task_move_file = PythonOperator(
-        task_id='mover_archivo',
-        python_callable=move_file,
-        provide_context=True,
-    )
-
-    task_fetch_bq_params >> task_load_parquet_to_bq >> task_move_file
