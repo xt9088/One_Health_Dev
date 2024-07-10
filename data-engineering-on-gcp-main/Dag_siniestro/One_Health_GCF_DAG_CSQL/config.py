@@ -108,12 +108,26 @@ def add_missing_columns_to_bq(project_id, dataset_id, table_id, missing_columns)
     client.update_table(table, ['schema'])
     print(f"Added missing columns: {missing_columns} to {dataset_id}.{table_id}")
 
+def remove_useless_columns_to_bq(project_id, dataset_id, table_id, useless_columns): 
+    client = bigquery.Client(project=project_id)
+    table_ref = client.dataset(dataset_id).table(table_id)
+    table = client.get_table(table_ref)   
+    for column, column_type in useless_columns.items():
+        incremental_query = f"""
+        Alter table `{project_id}.{dataset_id}.{table_id}`
+        drop column {column};
+        """
+        query_job = client.query(incremental_query)
+        query_job.result() 
+	
+
 def validate_schemas(project_id, dataset_id, table_id, gcs_uri):
     bq_schema = fetch_bq_table_schema(project_id, dataset_id, table_id)
-    
+    print(f"Fetched BQ schema: {bq_schema}")
     parquet_schema = fetch_parquet_schema(gcs_uri)
     
     missing_columns = {column: parquet_schema[column] for column in parquet_schema if column not in bq_schema}
+    useless_columns = {column: bq_schema[column] for column in bq_schema if column not in parquet_schema}
     conflicting_columns = {column: parquet_schema[column] for column in parquet_schema if column in bq_schema and parquet_type_to_bq_type(parquet_schema[column]) != bq_schema[column]}
     
     if conflicting_columns:
@@ -122,6 +136,9 @@ def validate_schemas(project_id, dataset_id, table_id, gcs_uri):
     if missing_columns:
         add_missing_columns_to_bq(project_id, dataset_id, table_id, missing_columns)
         print(f"Schema updated with missing columns: {missing_columns}")
+    if useless_columns:
+        remove_useless_columns_to_bq(project_id, dataset_id, table_id, useless_columns)
+        print(f"Schema removed the useless columns: {useless_columns}")
     else:
         print("No schema mismatches found.")
 
