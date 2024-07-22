@@ -108,17 +108,17 @@ def add_missing_columns_to_bq(project_id, dataset_id, table_id, missing_columns)
     client.update_table(table, ['schema'])
     print(f"Added missing columns: {missing_columns} to {dataset_id}.{table_id}")
 
-def remove_useless_columns_to_bq(project_id, dataset_id, table_id, useless_columns): 
-    client = bigquery.Client(project=project_id)
-    table_ref = client.dataset(dataset_id).table(table_id)
-    table = client.get_table(table_ref)   
-    for column, column_type in useless_columns.items():
-        incremental_query = f"""
-        Alter table `{project_id}.{dataset_id}.{table_id}`
-        drop column {column};
-        """
-        query_job = client.query(incremental_query)
-        query_job.result() 
+#def remove_useless_columns_to_bq(project_id, dataset_id, table_id, useless_columns): 
+#    client = bigquery.Client(project=project_id)
+#    table_ref = client.dataset(dataset_id).table(table_id)
+#    table = client.get_table(table_ref)   
+#    for column, column_type in useless_columns.items():
+#        incremental_query = f"""
+#        Alter table `{project_id}.{dataset_id}.{table_id}`
+#        drop column {column};
+#        """
+#        query_job = client.query(incremental_query)
+#        query_job.result() 
 	
 
 def validate_schemas(project_id, dataset_id, table_id, gcs_uri):
@@ -136,9 +136,9 @@ def validate_schemas(project_id, dataset_id, table_id, gcs_uri):
     if missing_columns:
         add_missing_columns_to_bq(project_id, dataset_id, table_id, missing_columns)
         print(f"Schema updated with missing columns: {missing_columns}")
-    if useless_columns:
-        remove_useless_columns_to_bq(project_id, dataset_id, table_id, useless_columns)
-        print(f"Schema removed the useless columns: {useless_columns}")
+    #if useless_columns:
+        #remove_useless_columns_to_bq(project_id, dataset_id, table_id, useless_columns)
+        #print(f"Schema removed the useless columns: {useless_columns}")
     else:
         print("No schema mismatches found.")
 
@@ -190,7 +190,8 @@ def move_file(**kwargs):
     archive_path = ti.xcom_pull(key='archive_path', task_ids='obtener_parametros')
     historicos_bucket = ti.xcom_pull(key='bucket_historico', task_ids='obtener_parametros')
     
-    today_date = datetime.now().strftime('%Y%m%d')
+    #today_date = datetime.now().strftime('%Y%m%d')
+    today_date = datetime.now().strftime('%Y%m%d%H%M%S')
 
     source_blob_name = f'{file_path_raw[file_path_raw.find("/") + 1:]}'
     

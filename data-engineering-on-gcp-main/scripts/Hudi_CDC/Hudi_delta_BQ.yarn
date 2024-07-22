@@ -1,0 +1,33 @@
+spark-submit --master yarn \
+--packages com.google.cloud:google-cloud-bigquery:2.10.4 \
+--driver-class-path /usr/lib/hudi/tools/bq-sync-tool/hudi-gcp-bundle-0.12.3.1.jar:/usr/lib/hudi/lib/hudi-utilities-bundle_2.12-0.12.3.jar:/usr/lib/hudi/lib/hudi-spark3.3-bundle_2.12-0.12.3.1.jar \
+--conf "spark.executor.extraClassPath=/usr/lib/hudi/tools/bq-sync-tool/hudi-gcp-bundle-0.12.3.1.jar:/usr/lib/hudi/lib/hudi-utilities-bundle_2.12-0.12.3.jar:/usr/lib/hudi/lib/hudi-spark3.3-bundle_2.12-0.12.3.1.jar" \
+--class org.apache.hudi.utilities.deltastreamer.HoodieDeltaStreamer \
+/usr/lib/hudi/lib/hudi-utilities-bundle_2.12-0.12.3.jar \
+--target-base-path gs://he-dev-data-historicos/incremental/test/part_month_siniestro_t-b01a0 \
+--target-table part_month_siniestro_t-b01a0 \
+--table-type COPY_ON_WRITE \
+--base-file-format PARQUET \
+--enable-sync \
+--sync-tool-classes org.apache.hudi.gcp.bigquery.BigQuerySyncTool \
+--hoodie-conf hoodie.deltastreamer.source.dfs.root=gs://he-dev-data-historicos/incremental/test/part_month_siniestro_t-b01a0 \
+--hoodie-conf hoodie.gcp.bigquery.sync.project_id=transferred \
+--hoodie-conf hoodie.gcp.bigquery.sync.dataset_name=dev_data_analytics \
+--hoodie-conf hoodie.gcp.bigquery.sync.dataset_location=us-east4 \
+--hoodie-conf hoodie.gcp.bigquery.sync.table_name=anl_tmp_part_month_siniestro_t \
+--hoodie-conf hoodie.gcp.bigquery.sync.base_path=gs://he-dev-data-historicos/tmp/anl_tmp_part_month_siniestro_t/${NOW} \
+--hoodie-conf hoodie.gcp.bigquery.sync.partition_fields=event_date \
+--hoodie-conf hoodie.gcp.bigquery.sync.source_uri=gs://he-dev-data-historicos/incremental/test/part_month_siniestro_t-b01a0/event_date=* \
+--hoodie-conf hoodie.gcp.bigquery.sync.source_uri_prefix=gs://he-dev-data-historicos/incremental/test/part_month_siniestro_t-b01a0 \
+--hoodie-conf hoodie.gcp.bigquery.sync.use_file_listing_from_metadata=true \
+--hoodie-conf hoodie.gcp.bigquery.sync.assume_date_partitioning=false \
+--hoodie-conf hoodie.datasource.write.recordkey.field=event_timestamp,event_name,user_pseudo_id,user_first_touch_timestamp,advertising_id \
+--hoodie-conf hoodie.datasource.write.partitionpath.field=event_date \
+--hoodie-conf hoodie.datasource.write.precombine.field=fec_insercion \
+--hoodie-conf hoodie.datasource.write.keygenerator.type=COMPLEX \
+--hoodie-conf hoodie.datasource.write.hive_style_partitioning=true \
+--hoodie-conf hoodie.datasource.write.drop.partition.columns=true \
+--hoodie-conf hoodie.deltastreamer.schemaprovider.class=org.apache.hudi.utilities.schema.FilebasedSchemaProvider \
+--hoodie-conf hoodie.deltastreamer.schemaprovider.source.schema.file=path_to_source_schema_file \
+--hoodie-conf hoodie.deltastreamer.schemaprovider.target.schema.file=path_to_target_schema_file \
+--source-ordering-field fec_insercionies.sources.ParquetDFSSource

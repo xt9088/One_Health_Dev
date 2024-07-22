@@ -16,12 +16,12 @@ default_dag_args = {
 }
 
 with DAG(
-    'dev_dag_siniestros_parquet_GCS_BQ_GCS',
+    'dag_compass_gcs_to_bq',
     catchup=False,
     default_args=default_dag_args,
     description='Import data de siniestros de GCS a BigQuery',
     schedule_interval=None,
-    max_active_runs=15,
+    max_active_runs=50,
     concurrency=1
 ) as dag:
 
