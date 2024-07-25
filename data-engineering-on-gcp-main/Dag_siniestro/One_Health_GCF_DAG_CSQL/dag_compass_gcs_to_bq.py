@@ -39,7 +39,7 @@ with DAG(
         python_callable=load_parquet_to_bigquery,
         provide_context=True,
     )
-
+    
     task_move_file = PythonOperator(
         task_id='mover_archivo',
         python_callable=move_file,
