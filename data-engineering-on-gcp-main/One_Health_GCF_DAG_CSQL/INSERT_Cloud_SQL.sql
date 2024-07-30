@@ -380,7 +380,7 @@ INSERT INTO `db-compass`.`DATA_FLOW_CONFIG` (
     'he-dev-data',
     '338c2e50-1bc2-4b13-9145-95190a55e53d',
     'd490efdc-0448-468d-97e4-749de76399e3',
-    'Ingesta Siniestros',
+    'Ingesta Poliza',
     'Trae la informacion de Rimac hacia Compass',
     'RIMAC',
     'ARCHIVO',
