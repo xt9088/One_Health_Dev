@@ -144,15 +144,20 @@ CREATE TABLE `he-dev-data.dev_data_analytics.anl_tmp_part_month_siniestro_t`
 PARTITION BY TIMESTAMP_TRUNC(fec_hora_ocurrencia, MONTH);
 
 --- ESQUEMA Y COLUMNAS DE NUEVA TABLA SINIESTRO ----
-CREATE OR REPLACE EXTERNAL TABLE `he-dev-data.dev_data_landing.iafas_mdm_siniestro_dif`
+CREATE OR REPLACE EXTERNAL TABLE `he-dev-data.dev_data_landing.iafas_cartas-garantia`
 OPTIONS (
   format = 'PARQUET',
-  uris = ['gs://us-east4-dev-airflow-data-9879bdea-bucket/data/data-ipress/ipress_clinicas/internacional/nombre_archivo.parquet']
-);
+  uris = ['gs://he-dev-data/he-dev-data-ipress/ipress_clinicas/internacional/cartas-garantia/mdm_cartas-garantia_30072024.parquet']
+); 
 
 SELECT t.ddl 
 FROM `he-dev-data.dev_data_landing.INFORMATION_SCHEMA.TABLES` t
 WHERE t.table_name = 'iafas_mdm_siniestro_dif';
+
+SELECT column_name, data_type
+FROM `he-dev-data.dev_data_landing.INFORMATION_SCHEMA.COLUMNS`
+WHERE table_name = 'iafas_mdm_siniestro';
+
 
 ---- SCRIPT DE TABLA A CREAR -----
 

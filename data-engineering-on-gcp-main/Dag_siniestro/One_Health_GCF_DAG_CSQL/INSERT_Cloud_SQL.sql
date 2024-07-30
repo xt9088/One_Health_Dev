@@ -350,3 +350,432 @@ INSERT INTO `db-compass`.`DATA_FLOW_CONFIG` (
     'he-dev-data-historicos'
 );
 
+INSERT INTO `db-compass`.`DATA_FLOW_CONFIG` (
+    ID,
+    PROJECT_ID,
+    VALIDATION_FILE_ID,
+    HOMOLOGATION_FILE_ID,
+    WORKFLOW_NAME,
+    WORKFLOW_DESCRIPTION,
+    ORIGIN_COMPANY,
+    ORIGIN_FORMAT,
+    ORIGIN_TYPE,
+    ORIGIN_EXTENSION,
+    ORIGIN_LINK_FILE,
+    DESTINATION_BUCKET,
+    DESTINATION_DIRECTORY,
+    DESTINATION_FILE_NAME,
+    DESTINATION_BG_NAME,
+    DESTINATION_DSET_LANDING,
+    DESTINATION_TABLE_LANDING,
+    COMPOSER_NAME,
+    DAG_STORAGE_DSET_NAME,
+    SQL_SCRIPT,
+    DESTINATION_DSET_UNIVERSAL,
+    DESTINATION_TABLE_UNIVERSAL,
+    ARCHIVE_DIRECTORY,
+    DESTINATION_BUCKET_HIST
+) VALUES (
+    'b92f65cb-3e7f-47b0-bd6d-e43b2b9c83c2',
+    'he-dev-data',
+    '338c2e50-1bc2-4b13-9145-95190a55e53d',
+    'd490efdc-0448-468d-97e4-749de76399e3',
+    'Ingesta Siniestros',
+    'Trae la informacion de Rimac hacia Compass',
+    'RIMAC',
+    'ARCHIVO',
+    'PARQUET',
+    '.parquet',
+    'File',
+    'he-dev-data',
+    'he-dev-data-ipress/ipress_clinicas/internacional/poliza/',
+    'poliza',
+    'he-dev-data',
+    'dev_data_landing',
+    'iafas_mdm_poliza',
+    'dev_airflow_data',
+    'dag_compass_gcs_to_bq',
+    'CREATE TABLE IF NOT EXISTS `he-dev-data.dev_data_landing.iafas_mdm_poliza` (
+  id_poliza STRING,
+  id_contratante STRING,
+  nom_contratante STRING,
+  nom_persona_contratante STRING,
+  ape_paterno_contratante STRING,
+  ape_materno_contratante STRING,
+  des_sexo_contratante STRING,
+  fec_nacimiento_contratante DATE,
+  tip_persona_contratante STRING,
+  tip_documento_contratante STRING,
+  num_documento_contratante STRING,
+  des_distrito_contratante STRING,
+  des_provincia_contratante STRING,
+  des_departamento_contratante STRING,
+  id_subsegmento_contratante INT64,
+  des_subsegmento_contratante STRING,
+  id_segmento_contratante INT64,
+  des_segmento_contratante STRING,
+  id_grupo_economico_contratante INT64,
+  des_grupo_economico_contratante STRING,
+  des_empresa_sector_economico_contratante STRING,
+  id_producto STRING,
+  nom_producto STRING,
+  ind_fronting STRING,
+  num_poliza STRING,
+  id_poliza_origen STRING,
+  tip_suscripcion STRING,
+  id_poliza_referencia STRING,
+  mnt_prima_emitida_bruta_anualizada_poliza NUMERIC,
+  fec_emision DATE,
+  fec_inicio_vigencia DATE,
+  fec_fin_vigencia DATE,
+  tip_vigencia_poliza STRING,
+  id_est_poliza_origen STRING,
+  des_est_poliza_origen STRING,
+  id_est_poliza STRING,
+  des_est_poliza STRING,
+  fec_anulacion DATE,
+  des_periodo_anulacion_poliza STRING,
+  fec_renovacion DATE,
+  id_motivo_anulacion_origen STRING,
+  id_motivo_anulacion STRING,
+  des_motivo_anulacion STRING,
+  id_canal INT64,
+  des_canal STRING,
+  id_subcanal INT64,
+  des_subcanal STRING,
+  des_subtipocanal STRING,
+  id_intermediario INT64,
+  nom_intermediario STRING,
+  id_corredor_nt INT64,
+  nom_corredor_nt STRING,
+  cod_producto_origen STRING,
+  frecuencia_pago STRING,
+  id_moneda STRING,
+  ind_gestionable STRING,
+  des_nivel_valor_prod STRING,
+  des_nivel_riesgo_prod STRING,
+  ind_renovacion_autom STRING,
+  id_compania STRING,
+  id_origen STRING,
+  ind_poliza_vigente STRING,
+  id_certificado STRING,
+  num_certificado_origen INT64,
+  id_estado_certificado_origen STRING,
+  id_certificado_origen STRING,
+  id_est_certificado STRING,
+  est_certificado STRING,
+  fec_inicio_vigencia_certificado DATE,
+  fec_fin_vigencia_certificado DATE,
+  fec_ingreso_certificado DATE,
+  fec_exclusion_certificado DATE,
+  id_motivo_exclusion_origen_certificado STRING,
+  id_motivo_exclusion_certificado STRING,
+  des_motivo_exclusion_certificado STRING,
+  id_via_cobro_certificado STRING,
+  des_via_cobro_certificado STRING,
+  tip_modalidad_cobro_certificado STRING,
+  fec_operacion_anulacion_certificado DATE,
+  des_periodo_operacion_anulacion STRING,
+  ind_certificado_vigente STRING,
+  ind_certificado_digital STRING,
+  mnt_prima_convenida NUMERIC,
+  id_titular STRING,
+  nom_completo_titular STRING,
+  nom_persona_titular STRING,
+  ape_paterno_titular STRING,
+  ape_materno_titular STRING,
+  des_sexo_titular STRING,
+  fec_nacimiento_titular DATE,
+  tip_persona_titular STRING,
+  tip_documento_titular STRING,
+  des_distrito_titular STRING,
+  des_provincia_titular STRING,
+  des_departamento_titular STRING,
+  unidad_asegurable STRUCT<
+    list ARRAY<STRUCT<
+      element STRUCT<
+        id_unidad_asegurable STRING,
+        tip_unidad_asegurable STRING,
+        fec_inicio_vigencia DATE,
+        fec_fin_vigencia DATE,
+        fec_anulacion DATE,
+        id_tipo_exclusion STRING,
+        des_motivo_exclusion STRING,
+        id_est_origen_unidad_asegurable STRING,
+        des_est_origen_unidad_asegurable STRING,
+        id_est_unidad_asegurable STRING,
+        des_est_unidad_asegurable STRING,
+        fec_creacion DATE,
+        ind_titular STRING,
+        id_persona STRING,
+        id_parentesco STRING,
+        des_parentesco STRING,
+        id_origen STRING,
+        id_inmueble INT64,
+        id_vehiculo INT64,
+        ramo_unidad_asegurable STRUCT<
+          list ARRAY<STRUCT<
+            element STRUCT<
+              id_ramo_unidad_asegurable STRING,
+              id_ramo STRING,
+              id_plan STRING,
+              id_version_plan STRING,
+              des_tip_version_plan STRING,
+              des_sub_tipo_version_plan STRING,
+              tip_plan_credito STRING,
+              ind_responsabilidad_civil STRING,
+              version_plan_agrupador_n1 STRING,
+              version_plan_agrupador_n2 STRING,
+              version_plan_agrupador_n3 STRING,
+              id_origen STRING,
+              cobertura_unidad_asegurable STRUCT<
+                list ARRAY<STRUCT<
+                  element STRUCT<
+                    id_cobertura_unidad_asegurable STRING,
+                    id_cobertura STRING,
+                    mnt_suma_asegurada_usd NUMERIC,
+                    ind_principal STRING
+                  >
+                >>
+              >
+            >
+          >>
+        >
+      >
+    >>
+  >,
+  endoso_cesion_derecho STRUCT<
+    list ARRAY<STRUCT<
+      element STRUCT<
+        id_endosatario_certificado STRING,
+        id_persona_endoso STRING,
+        nom_persona_endoso STRING,
+        id_persona_endosatario STRING,
+        nom_persona_endosatario STRING,
+        fec_inicio_vigencia_endoso DATE,
+        fec_fin_vigencia_endoso DATE,
+        cod_estado_endoso_origen STRING,
+        des_estado_endoso_origen STRING,
+        cod_estado_endoso STRING,
+        des_estado_endoso STRING,
+        por_participacion_endoso NUMERIC,
+        id_moneda_endoso STRING,
+        mnt_endoso NUMERIC,
+        fec_ingreso_endoso DATE,
+        des_texto_bien_endoso STRING,
+        fec_exclusion_endoso DATE,
+        des_motivo_exclusion_origen STRING
+      >
+    >>
+  >,
+  periodo DATE,
+  fec_procesamiento DATE
+);
+',
+    'dev_data_analytics',
+    'anl_mdm_universal_poliza',
+    'he-dev-data-ipress/ipress_clinicas/internacional/Inventario_poliza/',
+    'he-dev-data-historicos'
+);
+
+
+INSERT INTO `db-compass`.`DATA_FLOW_CONFIG` (
+    ID,
+    PROJECT_ID,
+    VALIDATION_FILE_ID,
+    HOMOLOGATION_FILE_ID,
+    WORKFLOW_NAME,
+    WORKFLOW_DESCRIPTION,
+    ORIGIN_COMPANY,
+    ORIGIN_FORMAT,
+    ORIGIN_TYPE,
+    ORIGIN_EXTENSION,
+    ORIGIN_LINK_FILE,
+    DESTINATION_BUCKET,
+    DESTINATION_DIRECTORY,
+    DESTINATION_FILE_NAME,
+    DESTINATION_BG_NAME,
+    DESTINATION_DSET_LANDING,
+    DESTINATION_TABLE_LANDING,
+    COMPOSER_NAME,
+    DAG_STORAGE_DSET_NAME,
+    SQL_SCRIPT,
+    DESTINATION_DSET_UNIVERSAL,
+    DESTINATION_TABLE_UNIVERSAL,
+    ARCHIVE_DIRECTORY,
+    DESTINATION_BUCKET_HIST
+) VALUES (
+    '2ffd5dc9-5bfe-471c-9647-d3dd2ffda66e',
+    'he-dev-data',
+    '338c2e50-1bc2-4b13-9145-95190a55e53d',
+    'd490efdc-0448-468d-97e4-749de76399e3',
+    'Ingesta Cartas Garantia',
+    'Trae la informacion de Rimac hacia Compass',
+    'RIMAC',
+    'ARCHIVO',
+    'PARQUET',
+    '.parquet',
+    'File',
+    'he-dev-data',
+    'he-dev-data-ipress/ipress_clinicas/internacional/cartas-garantia/',
+    'cartas-garantia',
+    'he-dev-data',
+    'dev_data_landing',
+    'iafas_mdm_cartas-garantia',
+    'dev_airflow_data',
+    'dag_compass_gcs_to_bq',
+    'CREATE TABLE IF NOT EXISTS `he-dev-data.dev_data_landing.iafas_mdm_cartas-garantia` (
+    id_carta_garantia STRING,
+    id_origen STRING,
+    num_carta_garantia_origen STRING,
+    anio_carta_garantia INT64,
+    num_carta_garantia INT64,
+    id_actividad STRING,
+    id_siniestro STRING,
+    fec_emision DATE,
+    mnt_carta_garantia_total FLOAT64,
+    des_est_carta_garantia_homologado STRING,
+    des_est_carta_garantia_origen STRING,
+    id_persona_proveedor STRING,
+    tip_documento_proveedor STRING,
+    num_documento_proveedor STRING,
+    des_razon_social_proveedor STRING,
+    nom_comercial_proveedor STRING,
+    id_sede_proveedor STRING,
+    nom_sede_proveedor STRING,
+    des_departamento_sede_proveedor STRING,
+    des_provincia_sede_proveedor STRING,
+    des_distrito_sede_proveedor STRING,
+    id_persona_contratante STRING,
+    tip_documento_contratante STRING,
+    num_documento_contratante STRING,
+    nom_completo_contratante STRING,
+    cod_grupo_renovacion_salud STRING,
+    des_grupo_renovacion_salud STRING,
+    id_persona_afiliado STRING,
+    tip_documento_afiliado STRING,
+    num_documento_afiliado STRING,
+    nom_completo_afiliado STRING,
+    edad_afiliado NUMERIC,
+    id_persona_afiliado_titular STRING,
+    tip_documento_titular STRING,
+    num_documento_titular STRING,
+    nom_completo_titular STRING,
+    cod_cobertura STRING,
+    nom_cobertura STRING,
+    agrupacion_cobertura STRING,
+    id_producto STRING,
+    des_producto STRING,
+    des_producto_agrupado STRING,
+    des_diagnostico STRING,
+    des_tip_capa STRING,
+    num_diagnotico_origen STRING,
+    ind_covid STRING,
+    id_moneda STRING,
+    id_plan STRING,
+    num_alternativa_copago INT64,
+    num_alternativa_copago_forzada INT64,
+    carta_garantia_version STRUCT<
+        list ARRAY<
+            STRUCT<
+                element STRUCT<
+                    ind_solicitud_aprobada STRING,
+                    num_version INT64,
+                    fec_aprobacion DATE,
+                    des_est_version STRING,
+                    mnt_autorizado_con_igv FLOAT64,
+                    id_origen STRING,
+                    des_tipo_procedimiento STRING,
+                    num_procedimiento_origen STRING,
+                    des_procedimiento STRING,
+                    id_poliza STRING,
+                    num_solicitud_origen STRING,
+                    num_solicitud STRING,
+                    des_tipo_solicitud STRING,
+                    fec_solicitud DATE,
+                    fec_atencion DATE,
+                    des_motivo_rechazo STRING,
+                    des_observacion_solicitud STRING,
+                    num_colegio_medico_solicitud STRING,
+                    nom_medico_solicitud STRING,
+                    especialidades_medico_solicitud STRUCT<
+                        list ARRAY<
+                            STRUCT<
+                                element STRUCT<
+                                    des_especialidad STRING
+                                >
+                            >
+                        >
+                    >,
+                    mnt_solicitado NUMERIC,
+                    mnt_igv_solicitado NUMERIC,
+                    mnt_autorizado NUMERIC,
+                    mnt_igv_autorizado NUMERIC,
+                    por_cobertura_carta NUMERIC,
+                    des_subtipo_solicitud STRING,
+                    des_est_solicitud_homologado STRING,
+                    des_est_solicitud_origen STRING
+                >
+            >
+        >
+    >,
+    carta_garantia_auditoria_concurrente STRUCT<
+        list ARRAY<
+            STRUCT<
+                element STRUCT<
+                    id_carta_garantia_auditoria STRING,
+                    num_colegio_medico_auditoria STRING,
+                    nom_medico_auditoria STRING,
+                    especialidades_medico_auditoria STRUCT<
+                        list ARRAY<
+                            STRUCT<
+                                element STRUCT<
+                                    des_especialidad STRING
+                                >
+                            >
+                        >
+                    >,
+                    fec_ingreso DATE,
+                    fec_alta DATE,
+                    fec_auditoria DATE,
+                    des_tipo_hospitalizacion STRING,
+                    ind_ficha_observada STRING,
+                    mnt_carta_auditada NUMERIC,
+                    mnt_preliquidado NUMERIC,
+                    mnt_recuperado NUMERIC,
+                    des_est_auditoria STRING,
+                    des_est_auditoria_origen STRING,
+                    observacion_detalle STRUCT<
+                        list ARRAY<
+                            STRUCT<
+                                element STRUCT<
+                                    des_observacion STRING,
+                                    fec_registro_observacion DATE
+                                >
+                            >
+                        >
+                    >,
+                    diagnostico_detalle STRUCT<
+                        list ARRAY<
+                            STRUCT<
+                                element STRUCT<
+                                    num_diagnotico_origen_auditoria STRING,
+                                    des_diagnostico_auditoria STRING,
+                                    des_tip_capa_auditoria STRING,
+                                    fec_registro_diagnostico_auditoria DATE
+                                >
+                            >
+                        >
+                    >
+                >
+            >
+        >
+    >,
+    periodo DATE
+);
+',
+    'dev_data_analytics',
+    'anl_mdm_universal_cartas-garantia',
+    'he-dev-data-ipress/ipress_clinicas/internacional/Inventario_cartas-garantia/',
+    'he-dev-data-historicos'
+);

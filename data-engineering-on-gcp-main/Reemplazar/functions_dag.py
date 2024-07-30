@@ -19,7 +19,7 @@ def fetch_and_store_values(table, **kwargs):
     file = pre_file.split('_')[-2]
     indice_slash_final_file = file_name.rfind('/')
     prefix_file = file_name[:indice_slash_final_file]
-    file_path = prefix_file+'/'+file+'.parquet'
+    file_path = prefix_file + '/' + file + '.parquet'
     print(f"Fetch and Store Values: Ruta a identificar en tabla parametros (la estructura debe ser mdm_NOMBRE_fecha)- {file_path}")
     
     mysql_hook = MySqlHook(mysql_conn_id='Cloud_SQL_db_compass')
@@ -40,18 +40,35 @@ def fetch_and_store_values(table, **kwargs):
     if result:
         result_dict = dict(zip(column_names, result[0]))
 
-        kwargs['ti'].xcom_push(key='file', value=result_dict['DESTINATION_FILE_NAME'])
-        kwargs['ti'].xcom_push(key='source_bucket', value=result_dict['DESTINATION_BUCKET'])
-        kwargs['ti'].xcom_push(key='source_path', value=result_dict['DESTINATION_DIRECTORY'])
-        kwargs['ti'].xcom_push(key='project_id', value=result_dict['PROJECT_ID'])
-        kwargs['ti'].xcom_push(key='dataset_id', value=result_dict['DESTINATION_DSET_LANDING'])
-        kwargs['ti'].xcom_push(key='table_id', value=result_dict['DESTINATION_TABLE_LANDING'])
-        kwargs['ti'].xcom_push(key='sql_script', value=result_dict['SQL_SCRIPT'])
-        kwargs['ti'].xcom_push(key='archive_path', value=result_dict['ARCHIVE_DIRECTORY'])
-        kwargs['ti'].xcom_push(key='bucket_historico', value=result_dict['DESTINATION_BUCKET_HIST'])
-        kwargs['ti'].xcom_push(key='file_path_raw', value=ruta)
+        # Pushing values to XCom
+        ti = kwargs['ti']
+        ti.xcom_push(key='file', value=result_dict['DESTINATION_FILE_NAME'])
+        ti.xcom_push(key='source_bucket', value=result_dict['DESTINATION_BUCKET'])
+        ti.xcom_push(key='source_path', value=result_dict['DESTINATION_DIRECTORY'])
+        ti.xcom_push(key='project_id', value=result_dict['PROJECT_ID'])
+        ti.xcom_push(key='dataset_id', value=result_dict['DESTINATION_DSET_LANDING'])
+        ti.xcom_push(key='table_id', value=result_dict['DESTINATION_TABLE_LANDING'])
+        ti.xcom_push(key='sql_script', value=result_dict['SQL_SCRIPT'])
+        ti.xcom_push(key='archive_path', value=result_dict['ARCHIVE_DIRECTORY'])
+        ti.xcom_push(key='bucket_historico', value=result_dict['DESTINATION_BUCKET_HIST'])
+        ti.xcom_push(key='file_path_raw', value=ruta)
+        
+        source_blob_name = f'{ruta[ruta.find("/") + 1:]}'
+        today_date = datetime.now().strftime('%Y%m%d')
+        destination_blob_name = f'{result_dict["ARCHIVE_DIRECTORY"]}{file}_{today_date}.parquet'
+
+        ti.xcom_push(key='source_blob_name', value=source_blob_name)
+        ti.xcom_push(key='destination_blob_name', value=destination_blob_name)
+        
+        print(f"source_bucket: {result_dict['DESTINATION_BUCKET']}")
+        print(f"bucket_historico: {result_dict['DESTINATION_BUCKET_HIST']}")
+        print(f"source_blob_name: {source_blob_name}")
+        print(f"destination_blob_name: {destination_blob_name}")
+        print(f"project_id: {result_dict['PROJECT_ID']}")
+        
     else:
         raise ValueError("Fetch and Store Values: No hubo resultado del query.")
+
 
 def fetch_bq_table_schema(project_id, dataset_id, table_id):
     client = bigquery.Client(project=project_id)
@@ -91,6 +108,8 @@ def parquet_type_to_bq_type(parquet_type):
         return 'DATE'
     elif 'time' in parquet_type:
         return 'TIME'
+    elif re.search(r'list\[struct\[2\]\]', parquet_type):
+        return "STRUCT<list ARRAY<STRUCT<element STRUCT<especialidad STRING, fec_acreditacion STRING>>>>"
     else:
         return 'STRING'  # Default type
 
@@ -110,10 +129,11 @@ def add_missing_columns_to_bq(project_id, dataset_id, table_id, missing_columns)
 
 def validate_schemas(project_id, dataset_id, table_id, gcs_uri):
     bq_schema = fetch_bq_table_schema(project_id, dataset_id, table_id)
-    
+    print(f"Fetched BQ schema: {bq_schema}")
     parquet_schema = fetch_parquet_schema(gcs_uri)
     
     missing_columns = {column: parquet_schema[column] for column in parquet_schema if column not in bq_schema}
+    useless_columns = {column: bq_schema[column] for column in bq_schema if column not in parquet_schema}
     conflicting_columns = {column: parquet_schema[column] for column in parquet_schema if column in bq_schema and parquet_type_to_bq_type(parquet_schema[column]) != bq_schema[column]}
     
     if conflicting_columns:
@@ -122,76 +142,20 @@ def validate_schemas(project_id, dataset_id, table_id, gcs_uri):
     if missing_columns:
         add_missing_columns_to_bq(project_id, dataset_id, table_id, missing_columns)
         print(f"Schema updated with missing columns: {missing_columns}")
+    #if useless_columns:
+        #remove_useless_columns_to_bq(project_id, dataset_id, table_id, useless_columns)
+        #print(f"Schema removed the useless columns: {useless_columns}")
     else:
         print("No schema mismatches found.")
 
-def load_parquet_to_bigquery(**kwargs):
-    ti = kwargs['ti']
-    file = ti.xcom_pull(key='file', task_ids='obtener_parametros')
-    project_id = ti.xcom_pull(key='project_id', task_ids='obtener_parametros')
-    dataset_id = ti.xcom_pull(key='dataset_id', task_ids='obtener_parametros')
-    table_id = ti.xcom_pull(key='table_id', task_ids='obtener_parametros')
-    sql_script = ti.xcom_pull(key='sql_script', task_ids='obtener_parametros')
-    file_path_raw = ti.xcom_pull(key='file_path_raw', task_ids='obtener_parametros')
-    
-    gcs_uri = f'gs://{file_path_raw}'
-
-    print(f"Carga de Parquet a BigQuery: Inicio de carga para ruta evento {gcs_uri} en tabla {project_id}.{dataset_id}.{table_id}")
-
-    client = bigquery.Client(project=project_id)
-    client.query(sql_script).result()
-    
-    # Validate and update schemas if needed
-    validate_schemas(project_id, dataset_id, table_id, gcs_uri)
-
-    job_config = bigquery.LoadJobConfig(
-        source_format=bigquery.SourceFormat.PARQUET,
-        write_disposition=bigquery.WriteDisposition.WRITE_APPEND,
-        schema_update_options=[bigquery.SchemaUpdateOption.ALLOW_FIELD_ADDITION],
-    )
-
-    table_ref = client.dataset(dataset_id).table(table_id)
-
-    load_job = client.load_table_from_uri(
-        gcs_uri,
-        table_ref,
-        job_config=job_config
-    )
-
-    load_job.result()
-
-    print(f"Carga de Parquet to BigQuery: Ingestado {load_job.output_rows} filas a {dataset_id}.{table_id}")
-
-def move_file(**kwargs):
-    from google.cloud import storage
-    from datetime import datetime
-
-    ti = kwargs['ti']
-    file = ti.xcom_pull(key='file', task_ids='obtener_parametros')
-    source_bucket = ti.xcom_pull(key='source_bucket', task_ids='obtener_parametros')
-    file_path_raw = ti.xcom_pull(key='file_path_raw', task_ids='obtener_parametros')
-    archive_path = ti.xcom_pull(key='archive_path', task_ids='obtener_parametros')
-    historicos_bucket = ti.xcom_pull(key='bucket_historico', task_ids='obtener_parametros')
-    
-    today_date = datetime.now().strftime('%Y%m%d')
-
-    source_blob_name = f'{file_path_raw[file_path_raw.find("/") + 1:]}'
-    
-    destination_blob_name = f'{archive_path}{file}_{today_date}.parquet'
-
-    print(f"Mover File: Tratando de mover file {source_blob_name} a {destination_blob_name} en bucket {historicos_bucket}")
-
-    storage_client = storage.Client()
-    
-    source_bucket_obj = storage_client.bucket(source_bucket)
-    destination_bucket_obj = storage_client.bucket(historicos_bucket)
-    
-    source_blob = source_bucket_obj.blob(source_blob_name)
-    
-    new_blob = source_bucket_obj.copy_blob(source_blob, destination_bucket_obj, destination_blob_name)
-    
-    print(f"Mover File: File {source_blob_name} copiado a {historicos_bucket}/{destination_blob_name}")
-    
-    source_blob.delete()
-    
-    print(f"Mover File: File {source_blob_name} borrado de {source_bucket}")
+#def remove_useless_columns_to_bq(project_id, dataset_id, table_id, useless_columns): 
+#    client = bigquery.Client(project=project_id)
+#    table_ref = client.dataset(dataset_id).table(table_id)
+#    table = client.get_table(table_ref)   
+#    for column, column_type in useless_columns.items():
+#        incremental_query = f"""
+#        Alter table `{project_id}.{dataset_id}.{table_id}`
+#        drop column {column};
+#        """
+#        query_job = client.query(incremental_query)
+#        query_job.result() 
