@@ -160,6 +160,8 @@ def validate_schemas(project_id, dataset_id, table_id, gcs_uri, impersonation_ch
     
     client.query(create_table_sql).result()
     
+    print(f"Tabla Creada usando query : {create_table_sql}")
+    
     # Fetch schemas
     bq_schema = fetch_bq_table_schema(client, dataset_id, table_id)
     print(f"Fetched BQ schema: {bq_schema}")
@@ -174,6 +176,9 @@ def validate_schemas(project_id, dataset_id, table_id, gcs_uri, impersonation_ch
     if missing_columns:
         add_missing_columns_to_bq(client, dataset_id, table_id, missing_columns)
         print(f"Schema updated with missing columns: {missing_columns}")
+    #if useless_columns:
+    #remove_useless_columns_to_bq(project_id, dataset_id, table_id, useless_columns)
+    #print(f"Schema removed the useless columns: {useless_columns}")
     else:
         print("No schema mismatches found.")
 
@@ -194,7 +199,7 @@ def validate_schemas(project_id, dataset_id, table_id, gcs_uri, impersonation_ch
 default_dag_args = {
     'owner': 'airflow',
     'depends_on_past': False,
-    'email_on_failure': 'xt9088@rimac.com.pe',
+    'email_on_failure': config_dag.Email,
     'email_on_retry': False,
     'retries': 0,
     'start_date': datetime(2023, 1, 1),
