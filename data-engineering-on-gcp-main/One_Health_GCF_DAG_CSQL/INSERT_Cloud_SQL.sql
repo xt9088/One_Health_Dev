@@ -578,7 +578,6 @@ INSERT INTO `db-compass`.`DATA_FLOW_CONFIG` (
     'he-dev-data-historicos'
 );
 
-
 INSERT INTO `db-compass`.`DATA_FLOW_CONFIG` (
     ID,
     PROJECT_ID,
@@ -617,14 +616,14 @@ INSERT INTO `db-compass`.`DATA_FLOW_CONFIG` (
     '.parquet',
     'File',
     'he-dev-data',
-    'he-dev-data-ipress/ipress_clinicas/internacional/cartas-garantia/',
-    'cartas-garantia',
+    'he-dev-data-ipress/ipress_clinicas/internacional/cartas_garantia/',
+    'cartas_garantia',
     'he-dev-data',
     'dev_data_landing',
-    'iafas_mdm_cartas-garantia',
+    'iafas_mdm_cartas_garantia',
     'dev_airflow_data',
     'dag_compass_gcs_to_bq',
-    'CREATE TABLE IF NOT EXISTS `he-dev-data.dev_data_landing.iafas_mdm_cartas-garantia` (
+    'CREATE TABLE IF NOT EXISTS `he-dev-data.dev_data_landing.iafas_mdm_cartas_garantia` (
     id_carta_garantia STRING,
     id_origen STRING,
     num_carta_garantia_origen STRING,
@@ -775,7 +774,8 @@ INSERT INTO `db-compass`.`DATA_FLOW_CONFIG` (
 );
 ',
     'dev_data_analytics',
-    'anl_mdm_universal_cartas-garantia',
-    'he-dev-data-ipress/ipress_clinicas/internacional/Inventario_cartas-garantia/',
+    'anl_mdm_universal_cartas_garantia',
+    'he-dev-data-ipress/ipress_clinicas/internacional/Inventario_cartas_garantia/',
     'he-dev-data-historicos'
 );
+

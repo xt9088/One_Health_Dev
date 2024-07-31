@@ -24,7 +24,9 @@ def fetch_and_store_values(table=config_dag.TABLE, **kwargs):
     
     file_name = ruta
     pre_file = file_name.split('/')[-1]
-    file = pre_file.split('_')[-2]
+    parts = pre_file.split('_')
+    file = '_'.join(parts[1:-1])
+    #file = pre_file.split('_')[-2]
     indice_slash_final_file = file_name.rfind('/')
     prefix_file = file_name[:indice_slash_final_file]
     file_path = prefix_file + '/' + file + '.parquet'

@@ -46,7 +46,8 @@ def trigger_dag_gcf(data, context=None):
     
     file_name = ruta
     pre_file = file_name.split('/')[-1]
-    file = pre_file.split('_')[-2]
+    parts = pre_file.split('_')
+    file = '_'.join(parts[1:-1])
     indice_slash_final_file = file_name.rfind('/')
     prefix_file = file_name[:indice_slash_final_file]
     file_path = prefix_file+'/'+file+'.parquet'
