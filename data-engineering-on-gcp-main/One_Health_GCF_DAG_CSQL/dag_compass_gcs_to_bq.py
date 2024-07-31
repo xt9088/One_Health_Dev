@@ -48,7 +48,7 @@ def fetch_and_store_values(table=config_dag.TABLE, **kwargs):
     if result:
         result_dict = dict(zip(column_names, result[0]))
 
-        # Pushing values to XCom
+        # Guardar los valores a Xcom
         ti = kwargs['ti']
         ti.xcom_push(key='file', value=result_dict['DESTINATION_FILE_NAME'])
         ti.xcom_push(key='source_bucket', value=result_dict['DESTINATION_BUCKET'])
@@ -84,7 +84,7 @@ def fetch_bq_table_schema(client, dataset_id, table_id):
 
 def fetch_parquet_schema(gcs_uri,project_id,impersonation_chain=None):
     
-    credentials,project_id= google.auth.default()
+    credentials,_= google.auth.default()
     target_credentials = impersonated_credentials.Credentials(
     source_credentials=credentials,
     target_principal=impersonation_chain,
@@ -93,7 +93,6 @@ def fetch_parquet_schema(gcs_uri,project_id,impersonation_chain=None):
     target_credentials.refresh(Request())
 
     storage_client = storage.Client(credentials=target_credentials)
-    #storage_client = storage.Client()
     
     bucket_name, file_path = gcs_uri.replace('gs://', '').split('/', 1)
     bucket = storage_client.bucket(bucket_name)
@@ -140,13 +139,13 @@ def add_missing_columns_to_bq(client, dataset_id, table_id, missing_columns):
     print(f"Added missing columns: {missing_columns} to {dataset_id}.{table_id}")
 
 def validate_schemas(project_id, dataset_id, table_id, gcs_uri, impersonation_chain,sql_script):
-    # Obtain the default credentials
+    # Obtener las credenciales del enviroment composer
     credentials, _ = google.auth.default()
     
-    # Set up the target service account to impersonate
+    # Configurar la cuenta a impersonar 
     target_sa = impersonation_chain
     
-    # Create impersonated credentials   
+    # Crear credenciales de impersonificacion   
     target_credentials = impersonated_credentials.Credentials(
         source_credentials=credentials,
         target_principal=target_sa,
@@ -155,19 +154,19 @@ def validate_schemas(project_id, dataset_id, table_id, gcs_uri, impersonation_ch
     
     create_table_sql = f"{sql_script}"
     
-    # Create a BigQuery client using the impersonated credentials
+    # Crear cliente en Bigquery usando credenciales de impersonificacion
     client = bigquery.Client(credentials=target_credentials, project=project_id)
     
     client.query(create_table_sql).result()
     
     print(f"Tabla Creada usando query : {create_table_sql}")
     
-    # Fetch schemas
+    # Comparar schemas
     bq_schema = fetch_bq_table_schema(client, dataset_id, table_id)
     print(f"Fetched BQ schema: {bq_schema}")
     parquet_schema = fetch_parquet_schema(gcs_uri,project_id,impersonation_chain=impersonation_chain)
     
-    # Identify schema differences
+    # Identificar diferencias de schemas
     missing_columns = {column: parquet_schema[column] for column in parquet_schema if column not in bq_schema}
     conflicting_columns = {column: parquet_schema[column] for column in parquet_schema if column in bq_schema and parquet_type_to_bq_type(parquet_schema[column]) != bq_schema[column]}
     
@@ -182,7 +181,7 @@ def validate_schemas(project_id, dataset_id, table_id, gcs_uri, impersonation_ch
     else:
         print("No schema mismatches found.")
 
-# The function `remove_useless_columns_to_bq` is commented out, but you can uncomment and implement it if needed.
+# Funcion `remove_useless_columns_to_bq` para eliminar columnas en la tabla de bq
 # def remove_useless_columns_to_bq(project_id, dataset_id, table_id, useless_columns):
 #     client = bigquery.Client(project=project_id)
 #     table_ref = client.dataset(dataset_id).table(table_id)
@@ -220,7 +219,6 @@ with DAG(
         task_id='obtener_parametros',
         python_callable=fetch_and_store_values,
         op_kwargs={
-        #    'table': 'DATA_FLOW_CONFIG',
         'impersonation_chain': config_dag.SA  
         },
         provide_context=True,
@@ -252,8 +250,7 @@ with DAG(
         schema_update_options=['ALLOW_FIELD_ADDITION'],
         create_disposition='CREATE_IF_NEEDED',
         gcp_conn_id='bigquery_default',
-        #project_id=config_dag.PROJECT_ID,
-        impersonation_chain=config_dag.SA, 
+        impersonation_chain=config_dag.SA,   
     )
 
     task_move_file = GCSToGCSOperator(
