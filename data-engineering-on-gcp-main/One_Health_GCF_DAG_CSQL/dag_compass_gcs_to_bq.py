@@ -122,8 +122,6 @@ def parquet_type_to_bq_type(parquet_type):
         return 'DATE'
     elif 'time' in parquet_type:
         return 'TIME'
-    elif re.search(r'list\[struct\[2\]\]', parquet_type):
-        return "STRUCT<list ARRAY<STRUCT<element STRUCT<especialidad STRING, fec_acreditacion STRING>>>>"
     else:
         return 'STRING'  # Default type
 
